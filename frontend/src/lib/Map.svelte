@@ -7,7 +7,7 @@
     export let mapId;
 
     let map: maplibre.Map;
-    
+
     onMount(() => {
         let style =
             "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
@@ -17,6 +17,21 @@
             center: [center[0], center[1]],
             zoom: zoom,
         });
+
+        // map.on("click", () => {
+        //     let bounds = map.getBounds();
+        //     let ne = bounds.getNorthEast();
+        //     let sw = bounds.getSouthWest();
+        //     console.log(ne, sw);
+
+        //     // add marker
+        //     new maplibre.Marker()
+        //         .setLngLat(ne)
+        //         .addTo(map);
+        //     new maplibre.Marker()
+        //         .setLngLat(sw)
+        //         .addTo(map);
+        // });
     });
 </script>
 
