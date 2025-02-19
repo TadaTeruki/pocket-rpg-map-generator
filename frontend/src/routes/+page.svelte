@@ -1,12 +1,11 @@
 <script lang="ts">
-	import Map from "$lib/Map.svelte";
-
+	import Map from '$lib/Map.svelte';
 </script>
 
-<Map zoom={4.5} mapId={"fullmap"} />
+<Map zoom={4.5} mapId={'fullmap'} />
 
 <style>
-  :global(#fullmap) {
-      @apply w-full h-screen overflow-hidden;
-  }
+	:global(#fullmap) {
+		@apply h-screen w-full overflow-hidden;
+	}
 </style>
