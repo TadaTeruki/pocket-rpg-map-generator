@@ -1,11 +1,11 @@
+import { Coordinates } from './tilecoords';
+
 export class PointFeature {
-	lat: number;
-	lng: number;
+	coordinates: Coordinates;
 	name: string;
 
-	constructor(lat: number, lng: number, name: string) {
-		this.lat = lat;
-		this.lng = lng;
+	constructor(coordinates: Coordinates, name: string) {
+		this.coordinates = coordinates;
 		this.name = name;
 	}
 }
@@ -13,8 +13,7 @@ export class PointFeature {
 export function pointFeaturesFromGeoJson(features: Object[]): PointFeature[] {
 	return features.map((feature: any) => {
 		return new PointFeature(
-			feature.geometry.coordinates[1],
-			feature.geometry.coordinates[0],
+			new Coordinates(feature.geometry.coordinates[1], feature.geometry.coordinates[0]),
 			feature.properties.name
 		);
 	});
