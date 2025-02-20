@@ -1,4 +1,5 @@
-import { Coordinates } from './tilecoords';
+import { Coordinates } from './geometry/coordinates';
+import { LineSegment } from './geometry/line';
 
 export class PointFeature {
 	coordinates: Coordinates;
@@ -54,66 +55,13 @@ class DisjointSet {
 	}
 }
 
-function lineIntersection(
-	p0: Coordinates,
-	p1: Coordinates,
-	p2: Coordinates,
-	p3: Coordinates
-): Coordinates | undefined {
-	const s1_x = p1.lng - p0.lng;
-	const s1_y = p1.lat - p0.lat;
-	const s2_x = p3.lng - p2.lng;
-	const s2_y = p3.lat - p2.lat;
-
-	const s = (-s1_y * (p0.lng - p2.lng) + s1_x * (p0.lat - p2.lat)) / (-s2_x * s1_y + s1_x * s2_y);
-	const t = (s2_x * (p0.lat - p2.lat) - s2_y * (p0.lng - p2.lng)) / (-s2_x * s1_y + s1_x * s2_y);
-
-	const x = p0.lng + t * s1_x;
-	const y = p0.lat + t * s1_y;
-
-	if (s >= 0 && s <= 1 && t >= 0 && t <= 1) {
-		return new Coordinates(y, x);
-	}
-
-	return undefined;
-}
-
-function hasIntersection(
-	p0: Coordinates,
-	p1: Coordinates,
-	p2: Coordinates,
-	p3: Coordinates
-): boolean {
-	if (
-		Math.max(p0.lng, p1.lng) < Math.min(p2.lng, p3.lng) ||
-		Math.min(p0.lng, p1.lng) > Math.max(p2.lng, p3.lng) ||
-		Math.max(p0.lat, p1.lat) < Math.min(p2.lat, p3.lat) ||
-		Math.min(p0.lat, p1.lat) > Math.max(p2.lat, p3.lat)
-	) {
-		return false;
-	}
-
-	const intersection = lineIntersection(p0, p1, p2, p3);
-	if (intersection === undefined) {
-		return false;
-	}
-	if (intersection.lat === p0.lat && intersection.lng === p0.lng) {
-		return false;
-	}
-	if (intersection.lat === p1.lat && intersection.lng === p1.lng) {
-		return false;
-	}
-
-	return true;
-}
-
 export function createNetwork(
 	places: Place[],
 	radius_lng: number,
 	radius_lat: number
 ): Map<number, number[]> {
 	let network = new Map<number, Set<number>>();
-	let disjointSet = new DisjointSet(places.length);
+	let disjoint_set = new DisjointSet(places.length);
 
 	let paths = [];
 
@@ -136,12 +84,12 @@ export function createNetwork(
 	paths.sort((a, b) => a.distance - b.distance);
 
 	paths.forEach((path) => {
-		if (!disjointSet.connected(path.from, path.to)) {
+		if (!disjoint_set.connected(path.from, path.to)) {
 			if (!network.has(path.from)) {
 				network.set(path.from, new Set());
 			}
 			network.get(path.from)!.add(path.to);
-			disjointSet.union(path.from, path.to);
+			disjoint_set.union(path.from, path.to);
 		}
 	});
 
@@ -158,26 +106,31 @@ export function createNetwork(
 			);
 			if (distance < radius_lat && distance < radius_lng) {
 				// check if there is any intersection
-				let intersection = false;
+				let intersected = false;
 				// all connections in network
 				network.forEach((tos, from) => {
 					tos.forEach((to) => {
-						const fromPlace = places[from];
-						const toPlace = places[to];
-						if (
-							hasIntersection(
-								place.coordinates,
-								otherPlace.coordinates,
-								fromPlace.coordinates,
-								toPlace.coordinates
-							)
-						) {
-							intersection = true;
+						const line1 = new LineSegment(place.coordinates, otherPlace.coordinates);
+						const line2 = new LineSegment(places[from].coordinates, places[to].coordinates);
+						const intersection = line1.intersection(line2);
+						if (intersection instanceof Coordinates) {
+							if (
+								!intersection.isSame(place.coordinates) &&
+								!intersection.isSame(otherPlace.coordinates) &&
+								!intersection.isSame(places[from].coordinates) &&
+								!intersection.isSame(places[to].coordinates)
+							) {
+								intersected = true;
+							}
+						}
+
+						if (intersection instanceof LineSegment) {
+							intersected = true;
 						}
 					});
 				});
 
-				if (intersection) {
+				if (intersected) {
 					return;
 				}
 
@@ -206,4 +159,89 @@ export function createNetwork(
 	});
 
 	return networkArray;
+}
+
+export type Path = {
+	line: LineSegment;
+	segment: [number, number];
+};
+
+export function createPathsFromNetwork(
+	places: Place[],
+	place_network: Map<number, number[]>
+): Path[] {
+	let nodes: Coordinates[] = [];
+	let candidate_lines: LineSegment[] = [];
+	place_network.forEach((tos, from) => {
+		tos.forEach((to) => {
+			const from_place = places[from];
+			const to_place = places[to];
+			let mid_coords: Coordinates;
+
+			const slope =
+				(to_place.coordinates.lat - from_place.coordinates.lat) /
+				(to_place.coordinates.lng - from_place.coordinates.lng);
+
+			if (Math.abs(slope) < 1) {
+				mid_coords = new Coordinates(from_place.coordinates.lat, to_place.coordinates.lng);
+			} else {
+				mid_coords = new Coordinates(to_place.coordinates.lat, from_place.coordinates.lng);
+			}
+			nodes.push(mid_coords);
+
+			candidate_lines.push(new LineSegment(from_place.coordinates, mid_coords));
+			candidate_lines.push(new LineSegment(mid_coords, to_place.coordinates));
+		});
+	});
+
+	nodes.push(...places.map((place) => place.coordinates));
+
+	let node_network = new Map<number, Set<number>>();
+	let paths: Path[] = [];
+
+	for (let i = 0; i < nodes.length; i++) {
+		node_network.set(i, new Set());
+	}
+
+	// create a network of nodes
+	for (const line of candidate_lines) {
+		type NodeOnLine = {
+			node_index: number;
+			relpos: number;
+		};
+
+		let nodes_on_line: NodeOnLine[] = [];
+
+		for (let i = 0; i < nodes.length; i++) {
+			const node = nodes[i];
+			const relpos = line.is_on_segment(node, 1e-6);
+			if (relpos !== undefined) {
+				nodes_on_line.push({
+					node_index: i,
+					relpos: relpos
+				});
+			}
+		}
+
+		nodes_on_line.sort((a, b) => a.relpos - b.relpos);
+
+		for (let i = 0; i < nodes_on_line.length - 1; i++) {
+			const from = nodes_on_line[i].node_index;
+			const to = nodes_on_line[i + 1].node_index;
+
+			if (node_network.get(from)!.has(to)) {
+				console.log('already connected');
+				continue;
+			}
+			node_network.get(from)!.add(to);
+			node_network.get(to)!.add(from);
+
+			paths.push({
+				line: new LineSegment(nodes[from], nodes[to]),
+				segment: [from, to]
+			});
+		}
+	}
+
+	return paths;
 }

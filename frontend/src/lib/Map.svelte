@@ -3,8 +3,16 @@
 	import maplibre from 'maplibre-gl';
 	import { geojson } from 'flatgeobuf';
 	import { tileToBBOX, type Tile } from '@mapbox/tilebelt';
-	import { Bounds, Coordinates, getTileCoordsInBounds, TileXYZ } from './tilecoords';
-	import { createNetwork, Place, PointFeature, pointFeaturesFromGeoJson } from './model';
+	import { getTileCoordsInBounds, TileXYZ } from './tilecoords';
+	import {
+		createNetwork,
+		createPathsFromNetwork,
+		Place,
+		PointFeature,
+		pointFeaturesFromGeoJson
+	} from './model';
+	import { Bounds } from './geometry/bounds';
+	import { Coordinates } from './geometry/coordinates';
 	export let center = [138.727, 38.362];
 	export let mapId;
 
@@ -80,6 +88,9 @@
 				// avoid duplicate meshIDs
 				const unique_meshID_features = unique_name_features.filter((feature) => {
 					const meshID = bounds.meshID(feature.coordinates, meshsize);
+					if (meshID === undefined) {
+						return false;
+					}
 					if (meshID_set.has(meshID)) {
 						return false;
 					} else {
@@ -246,14 +257,6 @@
 		const tiles = getTileCoordsInBounds(bounds, currentZoom);
 		const places = await loadPlaces(tiles, meshsize, meshsize, 1, bounds, currentZoom);
 
-		const meshWidth = bounds.meshNormalWidth(meshsize);
-		const meshHeight = bounds.meshNormalHeight(meshsize);
-		const network = createNetwork(
-			places,
-			meshWidth * connection_scale,
-			meshHeight * connection_scale
-		);
-
 		places.forEach((place) => {
 			new maplibre.Marker({
 				color: place.category == 'city' ? 'red' : 'blue'
@@ -262,45 +265,53 @@
 				.addTo(map);
 		});
 
+		const meshWidth = bounds.meshNormalWidth(meshsize);
+		const meshHeight = bounds.meshNormalHeight(meshsize);
+		const network = createNetwork(
+			places,
+			meshWidth * connection_scale,
+			meshHeight * connection_scale
+		);
+		const paths = createPathsFromNetwork(places, network);
 		const unique_str = Math.random().toString(36).slice(-8);
 
-		network.forEach((tos, from) => {
-			tos.forEach((to) => {
-				const from_coords = places[from].coordinates;
-				const to_coords = places[to].coordinates;
+		paths.forEach((path, i) => {
+			const from_coords = path.line.start;
+			const to_coords = path.line.end;
+			const from = path.segment[0];
+			const to = path.segment[1];
 
-				// create geojson object for line
-				const line = {
-					type: 'Feature',
-					geometry: {
-						type: 'LineString',
-						coordinates: [
-							[from_coords.lng, from_coords.lat] as [number, number],
-							[to_coords.lng, to_coords.lat] as [number, number]
-						]
-					},
-					properties: {}
-				};
+			// create geojson object for line
+			const line = {
+				type: 'Feature',
+				geometry: {
+					type: 'LineString',
+					coordinates: [
+						[from_coords.lng, from_coords.lat] as [number, number],
+						[to_coords.lng, to_coords.lat] as [number, number]
+					]
+				},
+				properties: {}
+			};
 
-				// add line to map
-				map.addSource(`line-source-${unique_str}-${from}-${to}`, {
-					type: 'geojson',
-					data: line as any
-				});
+			// add line to map
+			map.addSource(`line-source-${unique_str}-${from}-${to}-${i}`, {
+				type: 'geojson',
+				data: line as any
+			});
 
-				map.addLayer({
-					id: `line-${unique_str}-${from}-${to}`,
-					type: 'line',
-					source: `line-source-${unique_str}-${from}-${to}`,
-					layout: {
-						'line-join': 'round',
-						'line-cap': 'round'
-					},
-					paint: {
-						'line-color': 'black',
-						'line-width': 2
-					}
-				});
+			map.addLayer({
+				id: `line-${unique_str}-${from}-${to}-${i}`,
+				type: 'line',
+				source: `line-source-${unique_str}-${from}-${to}-${i}`,
+				layout: {
+					'line-join': 'round',
+					'line-cap': 'round'
+				},
+				paint: {
+					'line-color': '#0006',
+					'line-width': 2
+				}
 			});
 		});
 	}
