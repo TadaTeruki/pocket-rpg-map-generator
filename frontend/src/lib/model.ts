@@ -1,36 +1,8 @@
+import type { Config } from './config';
+import type { Place } from './features';
+import type { Bounds } from './geometry/bounds';
 import { Coordinates } from './geometry/coordinates';
 import { LineSegment } from './geometry/line';
-
-export class PointFeature {
-	coordinates: Coordinates;
-	name: string;
-
-	constructor(coordinates: Coordinates, name: string) {
-		this.coordinates = coordinates;
-		this.name = name;
-	}
-}
-
-export function pointFeaturesFromGeoJson(features: Object[]): PointFeature[] {
-	return features.map((feature: any) => {
-		return new PointFeature(
-			new Coordinates(feature.geometry.coordinates[1], feature.geometry.coordinates[0]),
-			feature.properties.name
-		);
-	});
-}
-
-export class Place {
-	coordinates: Coordinates;
-	name: string;
-	category: 'city' | 'town';
-
-	constructor(coordinates: Coordinates, name: string, category: 'city' | 'town') {
-		this.coordinates = coordinates;
-		this.name = name;
-		this.category = category;
-	}
-}
 
 class DisjointSet {
 	parent: number[];
@@ -57,11 +29,17 @@ class DisjointSet {
 
 export function createNetwork(
 	places: Place[],
-	radius_lng: number,
-	radius_lat: number
+	bounds: Bounds,
+	config: Config
 ): Map<number, number[]> {
 	let network = new Map<number, Set<number>>();
 	let disjoint_set = new DisjointSet(places.length);
+
+	const mesh_width_lng = bounds.meshNormalLng();
+	const mesh_width_lat = bounds.meshNormalLat();
+
+	const radius_lat = mesh_width_lat * config.connection_scale;
+	const radius_lng = mesh_width_lng * config.connection_scale;
 
 	let paths = [];
 
@@ -112,19 +90,8 @@ export function createNetwork(
 					tos.forEach((to) => {
 						const line1 = new LineSegment(place.coordinates, otherPlace.coordinates);
 						const line2 = new LineSegment(places[from].coordinates, places[to].coordinates);
-						const intersection = line1.intersection(line2);
-						if (intersection instanceof Coordinates) {
-							if (
-								!intersection.isSame(place.coordinates) &&
-								!intersection.isSame(otherPlace.coordinates) &&
-								!intersection.isSame(places[from].coordinates) &&
-								!intersection.isSame(places[to].coordinates)
-							) {
-								intersected = true;
-							}
-						}
-
-						if (intersection instanceof LineSegment) {
+						const intersection = line1.intersection(line2, false);
+						if (intersection !== undefined) {
 							intersected = true;
 						}
 					});
@@ -178,26 +145,47 @@ export function createPathsFromNetwork(
 			const to_place = places[to];
 			let mid_coords: Coordinates;
 
-			const slope =
-				(to_place.coordinates.lat - from_place.coordinates.lat) /
-				(to_place.coordinates.lng - from_place.coordinates.lng);
-
-			if (Math.abs(slope) < 1) {
+			if (Math.random() < 0.5) {
 				mid_coords = new Coordinates(from_place.coordinates.lat, to_place.coordinates.lng);
 			} else {
 				mid_coords = new Coordinates(to_place.coordinates.lat, from_place.coordinates.lng);
 			}
 			nodes.push(mid_coords);
 
-			candidate_lines.push(new LineSegment(from_place.coordinates, mid_coords));
-			candidate_lines.push(new LineSegment(mid_coords, to_place.coordinates));
+			const new_lines = [
+				new LineSegment(from_place.coordinates, mid_coords),
+				new LineSegment(mid_coords, to_place.coordinates)
+			];
+			candidate_lines = candidate_lines.concat(new_lines);
 		});
 	});
 
 	nodes.push(...places.map((place) => place.coordinates));
 
+	for (let ci = 0; ci < candidate_lines.length; ci++) {
+		for (let cj = ci + 1; cj < candidate_lines.length; cj++) {
+			const line1 = candidate_lines[ci];
+			const line2 = candidate_lines[cj];
+			const intersection = line1.intersection(line2, false);
+
+			if (intersection instanceof Coordinates) {
+				let acecpted = true;
+				for (let i = 0; i < nodes.length; i++) {
+					const existing = nodes[i];
+					if (existing.isSame(intersection)) {
+						acecpted = false;
+						break;
+					}
+				}
+
+				if (acecpted) {
+					nodes.push(intersection);
+				}
+			}
+		}
+	}
+
 	let node_network = new Map<number, Set<number>>();
-	let paths: Path[] = [];
 
 	for (let i = 0; i < nodes.length; i++) {
 		node_network.set(i, new Set());
@@ -229,19 +217,51 @@ export function createPathsFromNetwork(
 			const from = nodes_on_line[i].node_index;
 			const to = nodes_on_line[i + 1].node_index;
 
-			if (node_network.get(from)!.has(to)) {
-				console.log('already connected');
-				continue;
-			}
 			node_network.get(from)!.add(to);
 			node_network.get(to)!.add(from);
+		}
+	}
 
+	for (let i = 0; i < nodes.length; i++) {
+		let encount_nodes = new Map<number, number>();
+		const neighbors_1 = Array.from(node_network.get(i)!);
+		for (const neighbor_1 of neighbors_1) {
+			const neighbors_2 = Array.from(node_network.get(neighbor_1)!);
+			for (const neighbor_2 of neighbors_2) {
+				if (neighbor_2 >= i) {
+					continue;
+				}
+				if (encount_nodes.has(neighbor_2)) {
+					const neighbor_prev_1 = encount_nodes.get(neighbor_2)!;
+					// remove the longer line
+					const line1 = new LineSegment(nodes[neighbor_prev_1], nodes[i]);
+					const line2 = new LineSegment(nodes[neighbor_2], nodes[neighbor_1]);
+					if (line1.manhattan_distance() > line2.manhattan_distance()) {
+						node_network.get(neighbor_prev_1)!.delete(i);
+						node_network.get(i)!.delete(neighbor_prev_1);
+					} else {
+						node_network.get(neighbor_2)!.delete(neighbor_1);
+						node_network.get(neighbor_1)!.delete(neighbor_2);
+					}
+				} else {
+					encount_nodes.set(neighbor_2, neighbor_1);
+				}
+			}
+		}
+	}
+
+	let paths: Path[] = [];
+	node_network.forEach((tos, from) => {
+		tos.forEach((to) => {
+			if (from >= to) {
+				return;
+			}
 			paths.push({
 				line: new LineSegment(nodes[from], nodes[to]),
 				segment: [from, to]
 			});
-		}
-	}
+		});
+	});
 
 	return paths;
 }

@@ -9,8 +9,23 @@ export class LineSegment {
 		this.end = end;
 	}
 
-	intersection(other: LineSegment): Coordinates | LineSegment | undefined {
-		return calculateIntersection(this, other);
+	intersection(
+		other: LineSegment,
+		includes_touching: boolean
+	): Coordinates | LineSegment | undefined {
+		const intersection = calculateIntersection(this, other);
+
+		if (!includes_touching && intersection instanceof Coordinates) {
+			if (
+				this.start.isSame(intersection) ||
+				this.end.isSame(intersection) ||
+				other.start.isSame(intersection) ||
+				other.end.isSame(intersection)
+			) {
+				return undefined;
+			}
+		}
+		return intersection;
 	}
 
 	relative_position(point: Coordinates): number {
@@ -34,6 +49,20 @@ export class LineSegment {
 		return t;
 	}
 
+	point_on_segment(point: Coordinates): Coordinates | undefined {
+		const relpos = this.relative_position(point);
+		if (relpos < 0 || relpos > 1) {
+			return undefined;
+		}
+
+		const point_on_segment = new Coordinates(
+			this.start.lat + relpos * (this.end.lat - this.start.lat),
+			this.start.lng + relpos * (this.end.lng - this.start.lng)
+		);
+
+		return point_on_segment;
+	}
+
 	is_on_segment(point: Coordinates, limit_distance: number): number | undefined {
 		const relpos = this.relative_position(point);
 		if (relpos < 0 || relpos > 1) {
@@ -52,6 +81,14 @@ export class LineSegment {
 		}
 
 		return undefined;
+	}
+
+	manhattan_distance(): number {
+		const x0 = this.start.lng;
+		const y0 = this.start.lat;
+		const x1 = this.end.lng;
+		const y1 = this.end.lat;
+		return Math.abs(y1 - y0) + Math.abs(x1 - x0) * 1.5;
 	}
 }
 

@@ -8,7 +8,7 @@ export class Coordinates {
 
 	isSame(coord: Coordinates): boolean {
 		const dist = Math.abs(this.lat - coord.lat) + Math.abs(this.lng - coord.lng);
-		return dist < 1e-6;
+		return dist < 1e-3;
 	}
 
 	distance(coord: Coordinates): number {

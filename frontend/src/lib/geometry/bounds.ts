@@ -3,9 +3,20 @@ import { Coordinates } from './coordinates';
 export class Bounds {
 	sw: Coordinates;
 	ne: Coordinates;
-	constructor(w: number, s: number, e: number, n: number) {
+	meshSizeLng: number;
+	meshSizeLat: number;
+	constructor(
+		w: number,
+		s: number,
+		e: number,
+		n: number,
+		meshSizeLng: number,
+		meshSizeLat: number
+	) {
 		this.sw = new Coordinates(s, w);
 		this.ne = new Coordinates(n, e);
+		this.meshSizeLng = meshSizeLng;
+		this.meshSizeLat = meshSizeLat;
 	}
 
 	relativeXY01(coord: Coordinates): [number, number] {
@@ -19,37 +30,10 @@ export class Bounds {
 		const s = this.sw.lat + (this.ne.lat - this.sw.lat) * factor;
 		const e = this.ne.lng - (this.ne.lng - this.sw.lng) * factor;
 		const n = this.ne.lat - (this.ne.lat - this.sw.lat) * factor;
-		return new Bounds(w, s, e, n);
+		return new Bounds(w, s, e, n, this.meshSizeLng, this.meshSizeLat);
 	}
 
-	// block separates the bounds evenly into blockSize x blockSize blocks
-	blockIndices(coord: Coordinates, blockSize: number): [number, number] | undefined {
-		const [x, y] = this.relativeXY01(coord);
-		if (x < 0 || x > 1 || y < 0 || y > 1) {
-			return undefined;
-		}
-		return [Math.floor(x * blockSize), Math.floor(y * blockSize)];
-	}
-
-	blockRect(blockIndices: [number, number], blockSize: number): Bounds {
-		const [x, y] = blockIndices;
-		const w = this.sw.lng + (this.ne.lng - this.sw.lng) * (x / blockSize);
-		const s = this.sw.lat + (this.ne.lat - this.sw.lat) * (y / blockSize);
-		const e = this.sw.lng + (this.ne.lng - this.sw.lng) * ((x + 1) / blockSize);
-		const n = this.sw.lat + (this.ne.lat - this.sw.lat) * ((y + 1) / blockSize);
-		return new Bounds(w, s, e, n);
-	}
-
-	blockWidth(blockSize: number): number {
-		return Math.abs(this.ne.lng - this.sw.lng) / blockSize;
-	}
-
-	blockHeight(blockSize: number): number {
-		return Math.abs(this.ne.lat - this.sw.lat) / blockSize;
-	}
-
-	// mesh is like a block, but the size is smaller if the coord is closer to the center
-	meshIndices(coord: Coordinates, meshSize: number): [number, number] | undefined {
+	meshIndices(coord: Coordinates): [number, number] | undefined {
 		const [x, y] = this.relativeXY01(coord);
 		if (x < 0 || x > 1 || y < 0 || y > 1) {
 			return undefined;
@@ -59,22 +43,22 @@ export class Bounds {
 			return x * x * x * (x * (x * 6 - 15) + 10);
 		};
 
-		return [Math.floor(grad(x) * meshSize), Math.floor(grad(y) * meshSize)];
+		return [Math.floor(grad(x) * this.meshSizeLng), Math.floor(grad(y) * this.meshSizeLat)];
 	}
 
-	meshNormalWidth(meshSize: number): number {
-		return Math.abs(this.ne.lng - this.sw.lng) / meshSize;
+	meshNormalLng(): number {
+		return Math.abs(this.ne.lng - this.sw.lng) / this.meshSizeLng;
 	}
 
-	meshNormalHeight(meshSize: number): number {
-		return Math.abs(this.ne.lat - this.sw.lat) / meshSize;
+	meshNormalLat(): number {
+		return Math.abs(this.ne.lat - this.sw.lat) / this.meshSizeLat;
 	}
 
-	meshID(coord: Coordinates, meshSize: number): number | undefined {
-		const indices = this.meshIndices(coord, meshSize);
+	meshID(coord: Coordinates): number | undefined {
+		const indices = this.meshIndices(coord);
 		if (indices === undefined) {
 			return undefined;
 		}
-		return indices[1] * meshSize + indices[0];
+		return indices[1] * this.meshSizeLng + indices[0];
 	}
 }
