@@ -4,7 +4,7 @@
 	import { geojson } from 'flatgeobuf';
 	import { tileToBBOX, type Tile } from '@mapbox/tilebelt';
 	import { Bounds, Coordinates, getTileCoordsInBounds, TileXYZ } from './tilecoords';
-	import { PointFeature, pointFeaturesFromGeoJson } from './model';
+	import { createNetwork, Place, PointFeature, pointFeaturesFromGeoJson } from './model';
 	export let center = [138.727, 38.362];
 	export let mapId;
 
@@ -12,6 +12,7 @@
 	const meshsize = 6;
 	const feature_margin01 = 0.25;
 	const zoom_level_detailed = 7;
+	const connection_scale = 2;
 
 	async function loadFeatures(
 		urls: string[],
@@ -136,7 +137,7 @@
 		extract_margin_scale: number,
 		bounds: Bounds,
 		currentZoom: number
-	): Promise<[PointFeature[], PointFeature[]]> {
+	): Promise<Place[]> {
 		const base_url = window.location.origin;
 		const urls = [
 			`${base_url}/places_1.fgb`,
@@ -221,7 +222,87 @@
 			}
 		}
 
-		return [features_C, features_T];
+		const places_C = features_C.map((feature) => {
+			return new Place(feature.coordinates, feature.name, 'city');
+		});
+
+		const places_T = features_T.map((feature) => {
+			return new Place(feature.coordinates, feature.name, 'town');
+		});
+
+		return places_C.concat(places_T);
+	}
+
+	async function onClick() {
+		const bounds_maplibre = map.getBounds();
+		const bounds = new Bounds(
+			bounds_maplibre.getWest(),
+			bounds_maplibre.getSouth(),
+			bounds_maplibre.getEast(),
+			bounds_maplibre.getNorth()
+		).shrink(0.1);
+		const currentZoom = Math.floor(map.getZoom());
+
+		const tiles = getTileCoordsInBounds(bounds, currentZoom);
+		const places = await loadPlaces(tiles, meshsize, meshsize, 1, bounds, currentZoom);
+
+		const meshWidth = bounds.meshNormalWidth(meshsize);
+		const meshHeight = bounds.meshNormalHeight(meshsize);
+		const network = createNetwork(
+			places,
+			meshWidth * connection_scale,
+			meshHeight * connection_scale
+		);
+
+		places.forEach((place) => {
+			new maplibre.Marker({
+				color: place.category == 'city' ? 'red' : 'blue'
+			})
+				.setLngLat([place.coordinates.lng, place.coordinates.lat] as [number, number])
+				.addTo(map);
+		});
+
+		const unique_str = Math.random().toString(36).slice(-8);
+
+		network.forEach((tos, from) => {
+			tos.forEach((to) => {
+				const from_coords = places[from].coordinates;
+				const to_coords = places[to].coordinates;
+
+				// create geojson object for line
+				const line = {
+					type: 'Feature',
+					geometry: {
+						type: 'LineString',
+						coordinates: [
+							[from_coords.lng, from_coords.lat] as [number, number],
+							[to_coords.lng, to_coords.lat] as [number, number]
+						]
+					},
+					properties: {}
+				};
+
+				// add line to map
+				map.addSource(`line-source-${unique_str}-${from}-${to}`, {
+					type: 'geojson',
+					data: line as any
+				});
+
+				map.addLayer({
+					id: `line-${unique_str}-${from}-${to}`,
+					type: 'line',
+					source: `line-source-${unique_str}-${from}-${to}`,
+					layout: {
+						'line-join': 'round',
+						'line-cap': 'round'
+					},
+					paint: {
+						'line-color': 'black',
+						'line-width': 2
+					}
+				});
+			});
+		});
 	}
 
 	onMount(() => {
@@ -234,50 +315,7 @@
 			minZoom: 4
 		});
 
-		map.on('click', async () => {
-			const bounds_maplibre = map.getBounds();
-			const bounds = new Bounds(
-				bounds_maplibre.getWest(),
-				bounds_maplibre.getSouth(),
-				bounds_maplibre.getEast(),
-				bounds_maplibre.getNorth()
-			).shrink(0.1);
-			const currentZoom = Math.floor(map.getZoom());
-
-			const tiles = getTileCoordsInBounds(bounds, currentZoom);
-			const [features_C, features_T] = await loadPlaces(
-				tiles,
-				meshsize,
-				meshsize,
-				1,
-				bounds,
-				currentZoom
-			);
-			console.log(
-				'names_C',
-				features_C.map((feature) => feature.name)
-			);
-			console.log(
-				'names_T',
-				features_T.map((feature) => feature.name)
-			);
-
-			features_C.forEach((feature) => {
-				new maplibre.Marker({
-					color: 'red'
-				})
-					.setLngLat([feature.coordinates.lng, feature.coordinates.lat] as [number, number])
-					.addTo(map);
-			});
-
-			features_T.forEach((feature) => {
-				new maplibre.Marker({
-					color: 'blue'
-				})
-					.setLngLat([feature.coordinates.lng, feature.coordinates.lat] as [number, number])
-					.addTo(map);
-			});
-		});
+		map.on('click', onClick);
 	});
 </script>
 
