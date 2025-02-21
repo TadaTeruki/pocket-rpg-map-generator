@@ -28,11 +28,27 @@ export class Place {
 	coordinates: Coordinates;
 	name: string;
 	category: 'city' | 'town' | 'dummy';
+	position: number;
 
-	constructor(coordinates: Coordinates, name: string, category: 'city' | 'town' | 'dummy') {
+	constructor(
+		coordinates: Coordinates,
+		name: string,
+		category: 'city' | 'town' | 'dummy',
+		position: number
+	) {
 		this.coordinates = coordinates;
 		this.name = name;
 		this.category = category;
+		this.position = position;
+	}
+
+	nameHash(): number {
+		let hash = 0;
+		for (let i = 0; i < this.name.length; i++) {
+			hash = (hash << 5) - hash + this.name.charCodeAt(i);
+			hash |= 0;
+		}
+		return hash;
 	}
 }
 
@@ -87,8 +103,6 @@ export async function loadFeatures(
 		let name_set = new Set();
 		let meshID_set = new Set();
 
-		let coordinates: Coordinates[] = existing_coordinates;
-
 		for (let i = 0; i < feature_layers.length; i++) {
 			// avoid duplicate names
 			const unique_name_features = feature_layers[i].filter((feature) => {
@@ -115,23 +129,30 @@ export async function loadFeatures(
 			});
 
 			// keep margins between features
-			const margined_features = unique_meshID_features.filter((feature) => {
+
+			let margined_features = [];
+
+			for (let feature of unique_meshID_features) {
 				const mesh_width_lng = bounds.meshNormalLng();
 				const mesh_width_lat = bounds.meshNormalLat();
 
-				for (let coord of coordinates) {
+				let is_margin = true;
+				for (let coord of existing_coordinates) {
 					if (
 						Math.abs(coord.lng - feature.coordinates.lng) <
 							mesh_width_lng * config.feature_margin01 &&
 						Math.abs(coord.lat - feature.coordinates.lat) < mesh_width_lat * config.feature_margin01
 					) {
-						return false;
+						is_margin = false;
+						break;
 					}
 				}
 
-				coordinates.push(feature.coordinates);
-				return true;
-			});
+				if (is_margin) {
+					existing_coordinates.push(feature.coordinates);
+					margined_features.push(feature);
+				}
+			}
 
 			feature_layers[i] = margined_features;
 		}
@@ -180,8 +201,12 @@ export async function loadPlaces(
 
 	for (let i = 0; i < 3; i++) {
 		let feature_layers: PointFeature[][] = [];
-		const existing_names = new Set(features_C.map((feature) => feature.name));
-		const existing_coordinates = features_C.map((feature) => feature.coordinates);
+		const existing_names = new Set(
+			features_C.map((feature) => feature.name).concat(features_T.map((feature) => feature.name))
+		);
+		const existing_coordinates = features_C
+			.map((feature) => feature.coordinates)
+			.concat(features_T.map((feature) => feature.coordinates));
 		if (i == 0) {
 			feature_layers = await loadFeatures(
 				urls.slice(0, 3),
@@ -209,6 +234,8 @@ export async function loadPlaces(
 				existing_coordinates,
 				config
 			);
+		} else {
+			break;
 		}
 
 		for (let layer = 0; layer < feature_layers.length; layer++) {
@@ -216,17 +243,11 @@ export async function loadPlaces(
 			if (features_C.length == 0 && features.length >= config.num_C * config.extract_margin_scale) {
 				let indices = Array.from({ length: features.length }, (_, i) => i);
 				indices = shuffle(indices);
-				let new_features: PointFeature[] = [];
-
-				for (let i = 0; i < features.length; i++) {
-					if (i < config.num_C) {
-						features_C.push(features[indices[i]]);
-					} else {
-						new_features.push(features[indices[i]]);
-					}
+				let indices_apply = indices.slice(0, config.num_C);
+				for (let index of indices_apply) {
+					features_C.push(features[index]);
 				}
-
-				features = new_features;
+				features = features.filter((_, i) => !indices_apply.includes(i));
 			}
 
 			if (
@@ -236,16 +257,11 @@ export async function loadPlaces(
 			) {
 				let indices = Array.from({ length: features.length }, (_, i) => i);
 				indices = shuffle(indices);
-				let new_features: PointFeature[] = [];
-				for (let i = 0; i < features.length; i++) {
-					if (i < config.num_T) {
-						features_T.push(features[indices[i]]);
-					} else {
-						new_features.push(features[indices[i]]);
-					}
+				let indices_apply = indices.slice(0, config.num_T);
+				for (let index of indices_apply) {
+					features_T.push(features[index]);
 				}
-
-				features = new_features;
+				features = features.filter((_, i) => !indices_apply.includes(i));
 			}
 
 			if (
@@ -259,6 +275,7 @@ export async function loadPlaces(
 				for (let index of indices_apply) {
 					features_D.push(features[index]);
 				}
+				features = features.filter((_, i) => !indices_apply.includes(i));
 			}
 
 			if (features_D.length > 0) {
@@ -270,16 +287,27 @@ export async function loadPlaces(
 		}
 	}
 
-	const places_C = features_C.map((feature) => {
-		return new Place(feature.coordinates, feature.name, 'city');
+	// if features_T is empty, fill it with features from features_C
+	if (features_T.length == 0) {
+		let indices = Array.from({ length: features_C.length }, (_, i) => i);
+		indices = shuffle(indices);
+		let indices_apply = indices.slice(0, config.num_C / 2);
+		for (let index of indices_apply) {
+			features_T.push(features_C[index]);
+		}
+		features_C = features_C.filter((_, i) => !indices_apply.includes(i));
+	}
+
+	const places_C = features_C.map((feature, i) => {
+		return new Place(feature.coordinates, feature.name, 'city', i / config.num_C);
 	});
 
-	const places_T = features_T.map((feature) => {
-		return new Place(feature.coordinates, feature.name, 'town');
+	const places_T = features_T.map((feature, i) => {
+		return new Place(feature.coordinates, feature.name, 'town', i / config.num_T);
 	});
 
-	const places_D = features_D.map((feature) => {
-		return new Place(feature.coordinates, feature.name, 'dummy');
+	const places_D = features_D.map((feature, i) => {
+		return new Place(feature.coordinates, feature.name, 'dummy', i / config.num_D);
 	});
 
 	return places_C.concat(places_T).concat(places_D);

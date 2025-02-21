@@ -40,7 +40,7 @@ export class Bounds {
 		}
 
 		const grad = (x: number) => {
-			return x * x * x * (x * (x * 6 - 15) + 10);
+			return x;
 		};
 
 		return [Math.floor(grad(x) * this.meshSizeLng), Math.floor(grad(y) * this.meshSizeLat)];

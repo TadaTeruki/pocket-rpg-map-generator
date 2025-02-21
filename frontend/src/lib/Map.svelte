@@ -5,6 +5,7 @@
 	import { createNetwork, createPathsFromNetwork } from './model';
 	import { boundsFromConfig } from './config';
 	import { loadPlaces } from './features';
+	import { createMarker } from './marker';
 
 	export let center = [138.727, 38.362];
 	export let mapId;
@@ -12,13 +13,13 @@
 	let map: maplibre.Map;
 
 	const default_config = {
-		feature_margin01: 0.2,
+		feature_margin01: 0.3,
 		zoom_level_detailed: 6,
 		extract_margin_scale: 1.0,
-		connection_scale: 1.0,
+		connection_scale: 1.4,
 		num_C: 8,
 		num_T: 8,
-		num_D: 3
+		num_D: 5
 	};
 
 	async function onClick() {
@@ -39,15 +40,8 @@
 			if (place.category == 'dummy') {
 				return;
 			}
-			const el = document.createElement('div');
-			el.className = 'marker';
-			el.style.backgroundColor = place.category == 'city' ? 'red' : 'blue';
-			el.style.width = `25px`;
-			el.style.height = `25px`;
-			el.style.borderRadius = '20%';
-
 			// add marker to map
-			new maplibre.Marker({ element: el })
+			new maplibre.Marker({ element: createMarker(place) })
 				.setLngLat([place.coordinates.lng, place.coordinates.lat] as [number, number])
 				.addTo(map);
 		});

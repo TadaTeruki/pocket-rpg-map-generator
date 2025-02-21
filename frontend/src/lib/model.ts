@@ -82,7 +82,7 @@ export function createNetwork(
 				place.coordinates.lat - otherPlace.coordinates.lat,
 				place.coordinates.lng - otherPlace.coordinates.lng
 			);
-			if (distance < radius_lat && distance < radius_lng) {
+			if (distance < radius_lat && distance < radius_lng && Math.random() < 0.5) {
 				// check if there is any intersection
 				let intersected = false;
 				// all connections in network
@@ -160,8 +160,6 @@ export function createPathsFromNetwork(
 		});
 	});
 
-	nodes.push(...places.map((place) => place.coordinates));
-
 	for (let ci = 0; ci < candidate_lines.length; ci++) {
 		for (let cj = ci + 1; cj < candidate_lines.length; cj++) {
 			const line1 = candidate_lines[ci];
@@ -184,6 +182,14 @@ export function createPathsFromNetwork(
 			}
 		}
 	}
+
+	const nodes_prev_length = nodes.length;
+	let node_associated_with_place = new Set<number>();
+	for (let i = 0; i < places.length; i++) {
+		node_associated_with_place.add(i + nodes_prev_length);
+	}
+
+	nodes.push(...places.map((place) => place.coordinates));
 
 	let node_network = new Map<number, Set<number>>();
 
@@ -247,6 +253,25 @@ export function createPathsFromNetwork(
 					encount_nodes.set(neighbor_2, neighbor_1);
 				}
 			}
+		}
+	}
+
+	// remove nodes with only 1 connection
+	while (true) {
+		let nodes_to_remove = new Set<number>();
+		node_network.forEach((tos, from) => {
+			if (tos.size === 1 && !node_associated_with_place.has(from)) {
+				nodes_to_remove.add(from);
+			}
+		});
+		if (nodes_to_remove.size === 0) {
+			break;
+		}
+		for (const node of nodes_to_remove) {
+			node_network.get(node)!.forEach((to) => {
+				node_network.get(to)!.delete(node);
+			});
+			node_network.delete(node);
 		}
 	}
 
