@@ -1,14 +1,18 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import maplibre from 'maplibre-gl';
-	import { getTileCoordsInBounds } from './geometry/tilecoords';
 	import { Bounds } from './geometry/bounds';
 	import { Coordinates } from './geometry/coordinates';
-	import { loadPlaces, type Place } from './mapcontent/features';
+	import { type Place } from './mapcontent/features';
 	import { loadMapStyle } from './mapcontent/style';
-	import { createMarker } from './mapcontent/marker';
-	import { loadDefaultConfig, meshFromConfig } from './config';
-	import { createNetwork, createPathsFromNetwork } from './logic/network';
+	import { loadDefaultConfig } from './config';
+	import {
+		generate,
+		setIconCallback,
+		toggleGenerationResult,
+		type GenerationResult
+	} from './logic/generation';
+	import { generation_history } from '../store';
 
 	export let center = [138.727, 38.362];
 	export let mapId;
@@ -22,116 +26,7 @@
 	const default_config = loadDefaultConfig();
 	let cursor_bounds = new Bounds(0, 0, 0, 0);
 
-	let placeArchives = new Map<string, [maplibre.Marker[], Place]>();
-
-	$: if (show_place_name) {
-		for (const [markers, _] of placeArchives.values()) {
-			markers[1].getElement().style.display = 'block';
-		}
-	} else {
-		for (const [markers, _] of placeArchives.values()) {
-			markers[1].getElement().style.display = 'none';
-		}
-	}
-
-	async function createNew(bounds: Bounds, zoom: number) {
-		error_message = undefined;
-		place_chosen = undefined;
-		const mesh = meshFromConfig(default_config, bounds);
-
-		const currentZoom = Math.floor(zoom);
-
-		const tiles = getTileCoordsInBounds(bounds, currentZoom);
-		const places = await loadPlaces(tiles, default_config, mesh, currentZoom);
-
-		if (places.length === 0) {
-			error_message = '対応していない地域です';
-			return;
-		}
-
-		places.forEach((place) => {
-			if (place.category == 'dummy') {
-				return;
-			}
-
-			if (placeArchives.has(place.id)) {
-				const archive = placeArchives.get(place.id);
-				if (archive) {
-					const prev_place = archive[1];
-					if (place.position < prev_place.position) {
-						// apply place
-						archive[0].forEach((marker) => {
-							marker.remove();
-						});
-						placeArchives.delete(place.id);
-					} else {
-						return;
-					}
-				}
-			}
-
-			let markers = createMarker(place);
-			markers.icon.addEventListener('mousemove', () => {
-				place_chosen = place;
-			});
-
-			const marker_icon = new maplibre.Marker({ element: markers.icon })
-				.setLngLat([place.coordinates.lng, place.coordinates.lat] as [number, number])
-				.addTo(map);
-
-			const marker_name = new maplibre.Marker({ element: markers.name })
-				.setLngLat([place.coordinates.lng, place.coordinates.lat] as [number, number])
-				.addTo(map);
-
-			marker_name.getElement().style.display = show_place_name ? 'block' : 'none';
-
-			placeArchives.set(place.id, [[marker_icon, marker_name], place]);
-		});
-
-		const network = createNetwork(places, mesh, default_config);
-		const paths = createPathsFromNetwork(places, network);
-		const unique_str = Math.random().toString(36).slice(-8);
-
-		paths.forEach((path, i) => {
-			const from_coords = path.line.start;
-			const to_coords = path.line.end;
-			const from = path.segment[0];
-			const to = path.segment[1];
-
-			// create geojson object for line
-			const line = {
-				type: 'Feature',
-				geometry: {
-					type: 'LineString',
-					coordinates: [
-						[from_coords.lng, from_coords.lat] as [number, number],
-						[to_coords.lng, to_coords.lat] as [number, number]
-					]
-				},
-				properties: {}
-			};
-
-			// add line to map
-			map.addSource(`line-source-${unique_str}-${from}-${to}-${i}`, {
-				type: 'geojson',
-				data: line as any
-			});
-
-			map.addLayer({
-				id: `line-${unique_str}-${from}-${to}-${i}`,
-				type: 'line',
-				source: `line-source-${unique_str}-${from}-${to}-${i}`,
-				layout: {
-					'line-join': 'round',
-					'line-cap': 'round'
-				},
-				paint: {
-					'line-color': '#fecc60',
-					'line-width': 10
-				}
-			});
-		});
-	}
+	let generation_result_map: Map<string, GenerationResult> = new Map();
 
 	let bound_feature = {
 		type: 'Feature',
@@ -170,6 +65,22 @@
 		}
 	}
 
+	generation_history.subscribe((history) => {
+		history.future_ids().forEach((id) => {
+			const result = generation_result_map.get(id);
+			if (result) {
+				toggleGenerationResult(map, result, false);
+			}
+		});
+
+		history.past_and_present_ids().forEach((id) => {
+			const result = generation_result_map.get(id);
+			if (result) {
+				toggleGenerationResult(map, result, true);
+			}
+		});
+	});
+
 	onMount(() => {
 		map = new maplibre.Map({
 			container: mapId,
@@ -178,10 +89,27 @@
 			zoom: 5,
 			minZoom: 4
 		});
-		map.on('click', () => {
+		map.on('click', async () => {
 			if (mode === 'edit') {
-				createNew(cursor_bounds, map.getZoom());
+				error_message = undefined;
+				place_chosen = undefined;
 				mode = 'view';
+				const result = await generate(cursor_bounds, map.getZoom(), default_config);
+				if (result.result === 'error') {
+					error_message = result.error_message;
+				} else {
+					generation_result_map.set(result.id, result);
+					setIconCallback(result, (place) => {
+						place_chosen = place;
+					});
+					generation_history.update((history) => {
+						history.future_ids().forEach((id) => {
+							generation_result_map.delete(id);
+						});
+						history.push(result.id);
+						return history;
+					});
+				}
 			}
 		});
 		map.on('mousemove', (e) => {

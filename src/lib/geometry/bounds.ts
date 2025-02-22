@@ -77,4 +77,8 @@ export class Bounds {
 			this.ne.lat + diff.lat
 		);
 	}
+
+	toHash(): number {
+		return this.sw.toHash() ^ this.ne.toHash();
+	}
 }
