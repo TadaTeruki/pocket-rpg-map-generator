@@ -10,9 +10,11 @@
 		generate,
 		setIconCallback,
 		toggleGenerationResult,
+		togglePlaceNameVisibility,
 		type GenerationResult
 	} from './logic/generation';
 	import { generation_history } from '../store';
+	import { createMarkerOwnerTable } from './mapcontent/markerowner';
 
 	export let center = [138.727, 38.362];
 	export let mapId;
@@ -26,6 +28,7 @@
 	const default_config = loadDefaultConfig();
 	let cursor_bounds = new Bounds(0, 0, 0, 0);
 
+	// generation_id -> GenerationResult
 	let generation_result_map: Map<string, GenerationResult> = new Map();
 
 	let bound_feature = {
@@ -66,20 +69,40 @@
 	}
 
 	generation_history.subscribe((history) => {
-		history.future_ids().forEach((id) => {
-			const result = generation_result_map.get(id);
+		let past_and_present_maps = new Map();
+		history.past_and_present_ids().forEach((generation_id) => {
+			const result = generation_result_map.get(generation_id);
 			if (result) {
-				toggleGenerationResult(map, result, false);
+				past_and_present_maps.set(generation_id, result);
+			}
+		});
+		const marker_owner_table = createMarkerOwnerTable(past_and_present_maps);
+
+		history.future_ids().forEach((generation_id) => {
+			const result = generation_result_map.get(generation_id);
+			if (result) {
+				toggleGenerationResult(map, result, marker_owner_table, false);
 			}
 		});
 
-		history.past_and_present_ids().forEach((id) => {
-			const result = generation_result_map.get(id);
+		history.past_and_present_ids().forEach((generation_id) => {
+			const result = generation_result_map.get(generation_id);
 			if (result) {
-				toggleGenerationResult(map, result, true);
+				toggleGenerationResult(map, result, marker_owner_table, true);
 			}
 		});
 	});
+
+	$: if (show_place_name !== undefined) {
+		generation_history.subscribe((history) => {
+			history.all_ids().forEach((id) => {
+				const result = generation_result_map.get(id);
+				if (result) {
+					togglePlaceNameVisibility(result, show_place_name);
+				}
+			});
+		});
+	}
 
 	onMount(() => {
 		map = new maplibre.Map({
@@ -90,9 +113,9 @@
 			minZoom: 4
 		});
 		map.on('click', async () => {
+			error_message = undefined;
+			place_chosen = undefined;
 			if (mode === 'edit') {
-				error_message = undefined;
-				place_chosen = undefined;
 				mode = 'view';
 				const result = await generate(cursor_bounds, map.getZoom(), default_config);
 				if (result.result === 'error') {

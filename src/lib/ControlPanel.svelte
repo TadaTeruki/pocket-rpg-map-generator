@@ -2,16 +2,25 @@
 	import { generation_history } from '../store';
 
 	export let mode: 'view' | 'edit';
+
+	let undo_enabled = false;
+	let redo_enabled = false;
+	generation_history.subscribe((history) => {
+		undo_enabled = history.canUndo();
+		redo_enabled = history.canRedo();
+	});
 </script>
 
 <div class="flex items-center justify-center">
 	<button
-		class="color-view m-2 flex h-14 w-14 items-center justify-center rounded-lg bg-indigo-900 text-xl font-bold text-white"
+		class="color-view m-2 flex h-14 w-14 items-center justify-center rounded-lg bg-indigo-900 text-2xl font-bold text-white"
 		on:click={() => {
 			generation_history.update((history) => history.undo());
 		}}
 	>
-		↩
+		{#if undo_enabled}
+			↩
+		{/if}
 	</button>
 	<button
 		on:click={() => {
@@ -34,12 +43,14 @@
 		{/if}
 	</button>
 	<button
-		class="color-view m-2 flex h-14 w-14 items-center justify-center rounded-lg bg-indigo-900 text-xl font-bold text-white"
+		class="color-view m-2 flex h-14 w-14 items-center justify-center rounded-lg bg-indigo-900 text-2xl font-bold text-white"
 		on:click={() => {
 			generation_history.update((history) => history.redo());
 		}}
 	>
-		↪
+		{#if redo_enabled}
+			↪
+		{/if}
 	</button>
 </div>
 

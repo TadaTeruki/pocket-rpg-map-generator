@@ -5,6 +5,7 @@ import { loadPlaces, Place } from '$lib/mapcontent/features';
 import { createMarker } from '$lib/mapcontent/marker';
 import maplibre from 'maplibre-gl';
 import { createNetwork, createPathsFromNetwork, type Path } from './network';
+import type { PlaceOwnerTable } from '$lib/mapcontent/markerowner';
 
 export type GenerationResult = {
 	id: string;
@@ -12,6 +13,7 @@ export type GenerationResult = {
 	error_message: string;
 	places: Place[];
 	paths: Path[];
+	marker_levels: number[];
 	markers_icon: maplibre.Marker[];
 	markers_name: maplibre.Marker[];
 	lines_geojson: Object[];
@@ -41,6 +43,7 @@ export async function generate(
 			result: 'error',
 			error_message: '対応していない地域です',
 			places: [],
+			marker_levels: [],
 			paths: [],
 			markers_icon: [],
 			markers_name: [],
@@ -48,6 +51,7 @@ export async function generate(
 		};
 	}
 
+	let marker_levels: number[] = [];
 	let markers_icon: maplibre.Marker[] = [];
 	let markers_name: maplibre.Marker[] = [];
 
@@ -56,26 +60,7 @@ export async function generate(
 			return;
 		}
 
-		// if (placeArchives.has(place.id)) {
-		//     const archive = placeArchives.get(place.id);
-		//     if (archive) {
-		//         const prev_place = archive[1];
-		//         if (place.position < prev_place.position) {
-		//             // apply place
-		//             archive[0].forEach((marker) => {
-		//                 marker.remove();
-		//             });
-		//             placeArchives.delete(place.id);
-		//         } else {
-		//             return;
-		//         }
-		//     }
-		// }
-
 		let markers = createMarker(place);
-		// markers.icon.addEventListener('mousemove', () => {
-		//     place_chosen = place;
-		// });
 
 		const marker_icon = new maplibre.Marker({ element: markers.icon }).setLngLat([
 			place.coordinates.lng,
@@ -87,7 +72,7 @@ export async function generate(
 			place.coordinates.lat
 		] as [number, number]);
 
-		//placeArchives.set(place.id, [[marker_icon, marker_name], place]);
+		marker_levels.push(markers.level);
 		markers_icon.push(marker_icon);
 		markers_name.push(marker_name);
 	});
@@ -115,26 +100,6 @@ export async function generate(
 		};
 
 		lines_geojson.push(line);
-
-		// add line to map
-		// map.addSource(`line-source-${unique_str}-${from}-${to}-${i}`, {
-		//     type: 'geojson',
-		//     data: line as any
-		// });
-
-		// map.addLayer({
-		//     id: `line-${unique_str}-${from}-${to}-${i}`,
-		//     type: 'line',
-		//     source: `line-source-${unique_str}-${from}-${to}-${i}`,
-		//     layout: {
-		//         'line-join': 'round',
-		//         'line-cap': 'round'
-		//     },
-		//     paint: {
-		//         'line-color': '#fecc60',
-		//         'line-width': 10
-		//     }
-		// });
 	});
 
 	return {
@@ -143,6 +108,7 @@ export async function generate(
 		error_message: '',
 		places: places,
 		paths: paths,
+		marker_levels: marker_levels,
 		markers_icon: markers_icon,
 		markers_name: markers_name,
 		lines_geojson: lines_geojson
@@ -160,12 +126,22 @@ export function setIconCallback(result: GenerationResult, icon_callback: (place:
 export function toggleGenerationResult(
 	map: maplibre.Map,
 	result: GenerationResult,
+	marker_owner_table: PlaceOwnerTable,
 	active: boolean
 ) {
 	if (result.result !== 'success') {
 		return;
 	}
 	result.markers_icon.forEach((marker, i) => {
+		const place_id = result.places[i].id;
+
+		if (marker_owner_table.get(place_id) != result.id) {
+			if (marker._map) {
+				marker.remove();
+			}
+			return;
+		}
+
 		if (active && !marker._map) {
 			marker.addTo(map);
 		}
@@ -175,7 +151,16 @@ export function toggleGenerationResult(
 		}
 	});
 
-	result.markers_name.forEach((marker) => {
+	result.markers_name.forEach((marker, i) => {
+		const place_id = result.places[i].id;
+
+		if (marker_owner_table.get(place_id) != result.id) {
+			if (marker._map) {
+				marker.remove();
+			}
+			return;
+		}
+
 		if (active && !marker._map) {
 			marker.addTo(map);
 		}
@@ -214,63 +199,7 @@ export function toggleGenerationResult(
 	});
 }
 
-// export function activateGenerationResult(map: maplibre.Map, result: GenerationResult) {
-//     if (result.result !== 'success') {
-//         return;
-//     }
-//     result.markers_icon.forEach((marker, i) => {
-//         marker.addTo(map);
-//     });
-//     result.markers_name.forEach((marker) => {
-//         marker.addTo(map);
-//     });
-//     result.lines_geojson.forEach((line, i) => {
-//         map.addSource(`line-source-${result.id}-${i}`, {
-//             type: 'geojson',
-//             data: line as any
-//         });
-
-//         map.addLayer({
-//             id: `line-${result.id}-${i}`,
-//             type: 'line',
-//             source: `line-source-${result.id}-${i}`,
-//             layout: {
-//                 'line-join': 'round',
-//                 'line-cap': 'round'
-//             },
-//             paint: {
-//                 'line-color': '#fecc60',
-//                 'line-width': 10
-//             }
-//         });
-//     });
-// }
-
-// export function deactivateGenerationResult(map: maplibre.Map, result: GenerationResult) {
-//     if (result.result !== 'success') {
-//         return;
-//     }
-//     result.markers_icon.forEach((marker) => {
-//         if (marker._map) {
-//             marker.remove();
-//         }
-//     });
-//     result.markers_name.forEach((marker) => {
-//         if (marker._map) {
-//             marker.remove();
-//         }
-//     });
-//     result.lines_geojson.forEach((_, i) => {
-//         if (map.getLayer(`line-${result.id}-${i}`)) {
-//             map.removeLayer(`line-${result.id}-${i}`);
-//         }
-//         if (map.getSource(`line-source-${result.id}-${i}`)) {
-//             map.removeSource(`line-source-${result.id}-${i}`);
-//         }
-//     });
-// }
-
-export function updatePlaceNameVisibility(result: GenerationResult, visible: boolean) {
+export function togglePlaceNameVisibility(result: GenerationResult, visible: boolean) {
 	if (result.result !== 'success') {
 		return;
 	}

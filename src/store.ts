@@ -46,6 +46,14 @@ export class GenerationHistory {
 	all_ids(): string[] {
 		return this.result_ids;
 	}
+
+	canUndo(): boolean {
+		return this.head >= 0;
+	}
+
+	canRedo(): boolean {
+		return this.head < this.result_ids.length - 1;
+	}
 }
 
 export const generation_history = writable<GenerationHistory>(new GenerationHistory());

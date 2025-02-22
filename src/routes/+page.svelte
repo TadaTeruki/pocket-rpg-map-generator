@@ -73,7 +73,7 @@
 	class="pointer-events-none absolute top-0 left-0 flex h-full w-full flex-col items-center justify-center"
 >
 	<div class="text-md flex h-7 w-full items-center justify-center bg-indigo-900 p-4 text-white">
-		🗾 捕獲系RPG風 マップジェネレータ
+		捕獲系RPG風 マップジェネレータ
 	</div>
 	<div class="flex h-full w-full max-w-2xl flex-col items-center justify-center">
 		{#if message || mode === 'edit'}
@@ -90,9 +90,7 @@
 			</div>
 		{/if}
 		<div class="flex-grow"></div>
-		<div
-			class="pointer-events-auto mb-5 flex flex-col items-center justify-center bg-indigo-900 px-1 py-1"
-		>
+		<div class="pointer-events-auto mb-5 flex flex-col items-center justify-center bg-indigo-900">
 			<ControlPanel bind:mode>＋ 新しい地方</ControlPanel>
 			<div>
 				<input type="checkbox" bind:checked={show_place_name} class="h-4 w-4 text-indigo-900" />
