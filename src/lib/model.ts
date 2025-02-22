@@ -38,8 +38,10 @@ export function createNetwork(
 	const mesh_width_lng = bounds.meshNormalLng();
 	const mesh_width_lat = bounds.meshNormalLat();
 
-	const radius_lat = mesh_width_lat * config.connection_scale;
-	const radius_lng = mesh_width_lng * config.connection_scale;
+	const lower_connection_lat = mesh_width_lat * config.lower_connection_scale;
+	const lower_connection_lng = mesh_width_lng * config.lower_connection_scale;
+	const upper_connection_lat = mesh_width_lat * config.upper_connection_scale;
+	const upper_connection_lng = mesh_width_lng * config.upper_connection_scale;
 
 	let paths = [];
 
@@ -59,6 +61,7 @@ export function createNetwork(
 		}
 	}
 
+	// sort by distance (like Kruskal's algorithm)
 	paths.sort((a, b) => a.distance - b.distance);
 
 	paths.forEach((path) => {
@@ -82,7 +85,14 @@ export function createNetwork(
 				place.coordinates.lat - otherPlace.coordinates.lat,
 				place.coordinates.lng - otherPlace.coordinates.lng
 			);
-			if (distance < radius_lat && distance < radius_lng && Math.random() < 0.5) {
+			if (
+				(distance < lower_connection_lat &&
+					distance < lower_connection_lng &&
+					Math.random() < config.lower_connection_probability) ||
+				(distance > upper_connection_lat &&
+					distance > upper_connection_lng &&
+					Math.random() < config.upper_connection_probability)
+			) {
 				// check if there is any intersection
 				let intersected = false;
 				// all connections in network

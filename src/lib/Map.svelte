@@ -6,6 +6,7 @@
 	import { boundsFromConfig } from './config';
 	import { loadPlaces } from './features';
 	import { createMarker } from './marker';
+	import { loadMapStyle } from './style';
 
 	export let center = [138.727, 38.362];
 	export let mapId;
@@ -16,7 +17,10 @@
 		feature_margin01: 0.3,
 		zoom_level_detailed: 6,
 		extract_margin_scale: 1.0,
-		connection_scale: 1.4,
+		lower_connection_scale: 1.4,
+		upper_connection_scale: 7.0,
+		lower_connection_probability: 0.5,
+		upper_connection_probability: 0.3,
 		num_C: 8,
 		num_T: 8,
 		num_D: 5
@@ -92,10 +96,9 @@
 	}
 
 	onMount(() => {
-		let style = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 		map = new maplibre.Map({
 			container: mapId,
-			style: style,
+			style: loadMapStyle(),
 			center: [center[0], center[1]],
 			zoom: 5,
 			minZoom: 4
