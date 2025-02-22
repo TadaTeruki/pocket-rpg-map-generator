@@ -63,6 +63,14 @@ export class Bounds {
 		return new Bounds(w, s, e, n);
 	}
 
+	merge(bounds: Bounds): Bounds {
+		const w = Math.min(this.sw.lng, bounds.sw.lng);
+		const s = Math.min(this.sw.lat, bounds.sw.lat);
+		const e = Math.max(this.ne.lng, bounds.ne.lng);
+		const n = Math.max(this.ne.lat, bounds.ne.lat);
+		return new Bounds(w, s, e, n);
+	}
+
 	center(): Coordinates {
 		return new Coordinates((this.sw.lat + this.ne.lat) / 2, (this.sw.lng + this.ne.lng) / 2);
 	}

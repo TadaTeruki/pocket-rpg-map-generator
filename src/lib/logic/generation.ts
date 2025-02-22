@@ -23,9 +23,13 @@ export function getGenerationID(bounds: Bounds, zoom: number): string {
 	return `${bounds.sw.lng}-${bounds.sw.lat}-${bounds.ne.lng}-${bounds.ne.lat}-${zoom}`;
 }
 
-export async function generate_from_id(id: string, config: Config): Promise<GenerationResult> {
+export function parseGenerationID(id: string): [Bounds, number] {
 	const [west, south, east, north, zoom] = id.split('-').map(Number);
-	const bounds = new Bounds(west, south, east, north);
+	return [new Bounds(west, south, east, north), zoom];
+}
+
+export async function generateFromID(id: string, config: Config): Promise<GenerationResult> {
+	const [bounds, zoom] = parseGenerationID(id);
 	return generate(bounds, zoom, config);
 }
 

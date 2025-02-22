@@ -90,7 +90,7 @@ export function createNetwork(places: Place[], mesh: Mesh, config: Config): Map<
 					rng.next() < config.lower_connection_probability) ||
 				(distance > upper_connection_lat &&
 					distance > upper_connection_lng &&
-					rng.next()  < config.upper_connection_probability)
+					rng.next() < config.upper_connection_probability)
 			) {
 				// check if there is any intersection
 				let intersected = false;

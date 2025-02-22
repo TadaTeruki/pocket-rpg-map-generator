@@ -7,8 +7,9 @@
 	import { loadMapStyle } from './mapcontent/style';
 	import { loadDefaultConfig } from './config';
 	import {
-		generate_from_id,
+		generateFromID,
 		getGenerationID,
+		parseGenerationID,
 		setIconCallback,
 		toggleGenerationResult,
 		togglePlaceNameVisibility,
@@ -108,7 +109,7 @@
 	async function register(generation_ids: string[]) {
 		const results = Promise.all(
 			generation_ids.map((id) => {
-				return generate_from_id(id, default_config);
+				return generateFromID(id, default_config);
 			})
 		);
 
@@ -192,6 +193,35 @@
 				source.setData(bound_feature as any);
 			}
 		});
+
+		// read history from query parameter
+		const url = new URL(window.location.href);
+		const history_str = url.searchParams.get('history');
+		if (history_str) {
+			const history = history_str.split(',');
+
+			let new_bounds: Bounds[] = [];
+			let new_zoom = Infinity;
+			history.forEach((id) => {
+				const [bounds, zoom] = parseGenerationID(id);
+				new_bounds.push(bounds);
+				new_zoom = Math.min(new_zoom, zoom);
+			});
+			let new_bound = new_bounds[0];
+			for (let i = 1; i < new_bounds.length; i++) {
+				new_bound = new_bound.merge(new_bounds[i]);
+			}
+
+			if (new_zoom !== Infinity) {
+				map.setZoom(new_zoom);
+			}
+			const center = new_bound.center();
+			map.setCenter([center.lng, center.lat]);
+			register(history);
+			mode = 'view';
+		} else {
+			mode = 'edit';
+		}
 		map.on('load', () => {
 			map.addSource('bound-source', {
 				type: 'geojson',
@@ -199,17 +229,6 @@
 			});
 
 			loaded = true;
-
-			// read history from query parameter
-			const url = new URL(window.location.href);
-			const history_str = url.searchParams.get('history');
-			if (history_str) {
-				const history = history_str.split(',');
-				register(history);
-				mode = 'view';
-			} else {
-				mode = 'edit';
-			}
 		});
 	});
 </script>
