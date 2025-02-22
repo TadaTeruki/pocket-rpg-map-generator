@@ -22,4 +22,17 @@ export class Coordinates {
 	toString(): string {
 		return `(${this.lat}, ${this.lng})`;
 	}
+
+	toHash(): number {
+		const simplified = this.simplify();
+		return xorshift32(Math.round(simplified.lat * 1e6 + simplified.lng * 1e6));
+	}
+}
+
+function xorshift32(seed: number) {
+	let x = seed;
+	x ^= x << 13;
+	x ^= x >>> 17;
+	x ^= x << 5;
+	return x;
 }

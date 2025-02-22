@@ -2,26 +2,34 @@
 	export let mode: 'view' | 'edit';
 </script>
 
-<button
-	on:click={() => {
-		if (mode === 'view') {
-			mode = 'edit';
-		} else {
-			mode = 'view';
-		}
-	}}
-	class="text-lg font-bold text-white"
->
-	{#if mode === 'view'}
-		<span class="color-view flex h-14 w-50 items-center justify-center rounded-lg bg-indigo-900"
-			><slot></slot></span
-		>
-	{:else}
-		<span class="color-edit flex h-14 w-50 items-center justify-center rounded-lg bg-indigo-900"
-			><slot></slot></span
-		>
-	{/if}
-</button>
+<div class="flex items-center justify-center">
+    <button class="text-xl font-bold text-white color-view flex h-14 w-14 items-center justify-center rounded-lg bg-indigo-900 m-2">
+        ↩
+    </button>
+    <button
+        on:click={() => {
+            if (mode === 'view') {
+                mode = 'edit';
+            } else {
+                mode = 'view';
+            }
+        }}
+        class="text-lg font-bold text-white"
+    >
+        {#if mode === 'view'}
+            <span class="color-view flex h-14 w-50 items-center justify-center rounded-lg bg-indigo-900"
+                ><slot></slot></span
+            >
+        {:else}
+            <span class="color-edit flex h-14 w-50 items-center justify-center rounded-lg bg-indigo-900"
+                ><slot></slot></span
+            >
+        {/if}
+    </button>
+    <button class="text-xl font-bold text-white color-view flex h-14 w-14 items-center justify-center rounded-lg bg-indigo-900 m-2">
+        ↪
+    </button>
+</div>
 
 <style>
 	.color-edit {

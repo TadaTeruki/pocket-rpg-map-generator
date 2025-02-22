@@ -12,7 +12,7 @@
 
 	export let center = [138.727, 38.362];
 	export let mapId;
-	export let mode: 'view' | 'edit' = 'view';
+	export let mode: 'view' | 'edit';
 	export let place_chosen: Place | undefined;
 	export let show_place_name = true;
 	export let error_message: string | undefined;
@@ -34,14 +34,14 @@
 		}
 	}
 
-	async function createNew() {
+	async function createNew(bounds: Bounds, zoom: number) {
 		error_message = undefined;
 		place_chosen = undefined;
-		const mesh = meshFromConfig(default_config, cursor_bounds);
+		const mesh = meshFromConfig(default_config, bounds);
 
-		const currentZoom = Math.floor(map.getZoom());
+		const currentZoom = Math.floor(zoom);
 
-		const tiles = getTileCoordsInBounds(cursor_bounds, currentZoom);
+		const tiles = getTileCoordsInBounds(bounds, currentZoom);
 		const places = await loadPlaces(tiles, default_config, mesh, currentZoom);
 
 		if (places.length === 0) {
@@ -180,7 +180,7 @@
 		});
 		map.on('click', () => {
 			if (mode === 'edit') {
-				createNew();
+				createNew(cursor_bounds, map.getZoom());
 				mode = 'view';
 			}
 		});

@@ -4,7 +4,7 @@
 	import Map from '$lib/Map.svelte';
 	import { onMount } from 'svelte';
 
-	let mode: 'view' | 'edit' = 'view';
+	let mode: 'view' | 'edit' = 'edit';
 	let place_chosen: Place | undefined;
 	let show_place_name: boolean;
 	let error_message: string | undefined;
@@ -22,7 +22,7 @@
 		place_name_cache = place_chosen?.name;
 		message = '';
 		setTimeout(() => {
-			message = place_chosen?.name_display;
+			message = place_chosen?.name_display || '';
 		}, 1);
 	}
 
@@ -65,7 +65,7 @@
 	});
 </script>
 
-<div class="h-screen w-screen overflow-hidden border-10 border-indigo-950">
+<div class="h-screen w-screen overflow-hidden border-5 border-indigo-950 md:border-10">
 	<Map mapId={'fullmap'} bind:mode bind:place_chosen bind:show_place_name bind:error_message />
 </div>
 <canvas id="overlay" class="pointer-events-none absolute top-0 left-0 h-full w-full"></canvas>

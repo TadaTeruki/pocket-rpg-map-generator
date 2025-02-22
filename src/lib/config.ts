@@ -27,7 +27,7 @@ export function meshFromConfig(config: Config, bounds: Bounds): Mesh {
 export function loadDefaultConfig(): Config {
 	return {
 		feature_margin01: 0.3,
-		zoom_level_detailed: 7,
+		zoom_level_detailed: 6,
 		extract_margin_scale: 1.0,
 		lower_connection_scale: 1.4,
 		upper_connection_scale: 7.0,
