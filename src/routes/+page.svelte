@@ -43,6 +43,15 @@
 
 <Map mapId={'fullmap'} />
 <canvas id="overlay" class="pointer-events-none absolute top-0 left-0 h-full w-full"></canvas>
+<div
+	class="pointer-events-none absolute top-0 left-0 flex h-full w-full items-center justify-center"
+>
+	<div class="flex h-full w-full max-w-2xl flex-col items-center justify-center bg-[#88888855]">
+		<div>this is header</div>
+		<div class="flex-grow"></div>
+		<div>this is footer</div>
+	</div>
+</div>
 
 <style>
 	:global(#fullmap) {
