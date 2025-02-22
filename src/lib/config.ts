@@ -1,4 +1,4 @@
-import { Bounds } from './geometry/bounds';
+import { Bounds, Mesh } from './geometry/bounds';
 
 export type Config = {
 	feature_margin01: number;
@@ -13,19 +13,28 @@ export type Config = {
 	num_D: number;
 };
 
-export function boundsFromConfig(
-	config: Config,
-	west: number,
-	south: number,
-	east: number,
-	north: number
-): Bounds {
-	return new Bounds(
-		west,
-		south,
-		east,
-		north,
-		Math.sqrt(config.num_C + config.num_T + config.num_D) * 2.0 * 1.5,
+export function meshFromConfig(config: Config, bounds: Bounds): Mesh {
+	const aspect_ratio =
+		Math.abs(bounds.ne.lng - bounds.sw.lng) / Math.abs(bounds.ne.lat - bounds.sw.lat);
+
+	return new Mesh(
+		bounds,
+		Math.sqrt(config.num_C + config.num_T + config.num_D) * 2.0 * aspect_ratio,
 		Math.sqrt(config.num_C + config.num_T + config.num_D) * 2.0
-	).shrink(0.1);
+	);
+}
+
+export function loadDefaultConfig(): Config {
+	return {
+		feature_margin01: 0.3,
+		zoom_level_detailed: 6,
+		extract_margin_scale: 1.0,
+		lower_connection_scale: 1.4,
+		upper_connection_scale: 7.0,
+		lower_connection_probability: 0.5,
+		upper_connection_probability: 0.3,
+		num_C: 8,
+		num_T: 8,
+		num_D: 5
+	};
 }

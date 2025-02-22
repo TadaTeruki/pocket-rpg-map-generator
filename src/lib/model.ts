@@ -1,6 +1,6 @@
 import type { Config } from './config';
 import type { Place } from './features';
-import type { Bounds } from './geometry/bounds';
+import type { Mesh } from './geometry/bounds';
 import { Coordinates } from './geometry/coordinates';
 import { LineSegment } from './geometry/line';
 
@@ -27,16 +27,12 @@ class DisjointSet {
 	}
 }
 
-export function createNetwork(
-	places: Place[],
-	bounds: Bounds,
-	config: Config
-): Map<number, number[]> {
+export function createNetwork(places: Place[], mesh: Mesh, config: Config): Map<number, number[]> {
 	let network = new Map<number, Set<number>>();
 	let disjoint_set = new DisjointSet(places.length);
 
-	const mesh_width_lng = bounds.meshNormalLng();
-	const mesh_width_lat = bounds.meshNormalLat();
+	const mesh_width_lng = mesh.meshNormalLng();
+	const mesh_width_lat = mesh.meshNormalLat();
 
 	const lower_connection_lat = mesh_width_lat * config.lower_connection_scale;
 	const lower_connection_lng = mesh_width_lng * config.lower_connection_scale;

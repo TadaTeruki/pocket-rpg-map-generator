@@ -3,42 +3,28 @@
 	import maplibre from 'maplibre-gl';
 	import { getTileCoordsInBounds } from './tilecoords';
 	import { createNetwork, createPathsFromNetwork } from './model';
-	import { boundsFromConfig } from './config';
+	import { loadDefaultConfig, meshFromConfig } from './config';
 	import { loadPlaces } from './features';
 	import { createMarker } from './marker';
 	import { loadMapStyle } from './style';
+	import { Bounds } from './geometry/bounds';
+	import { Coordinates } from './geometry/coordinates';
 
 	export let center = [138.727, 38.362];
 	export let mapId;
 
 	let map: maplibre.Map;
 
-	const default_config = {
-		feature_margin01: 0.3,
-		zoom_level_detailed: 6,
-		extract_margin_scale: 1.0,
-		lower_connection_scale: 1.4,
-		upper_connection_scale: 7.0,
-		lower_connection_probability: 0.5,
-		upper_connection_probability: 0.3,
-		num_C: 8,
-		num_T: 8,
-		num_D: 5
-	};
+	const default_config = loadDefaultConfig();
+	let cursor_bounds = new Bounds(0, 0, 0, 0);
 
 	async function onClick() {
-		const bounds_maplibre = map.getBounds();
-		const bounds = boundsFromConfig(
-			default_config,
-			bounds_maplibre.getWest(),
-			bounds_maplibre.getSouth(),
-			bounds_maplibre.getEast(),
-			bounds_maplibre.getNorth()
-		);
+		const mesh = meshFromConfig(default_config, cursor_bounds);
+
 		const currentZoom = Math.floor(map.getZoom());
 
-		const tiles = getTileCoordsInBounds(bounds, currentZoom);
-		const places = await loadPlaces(tiles, default_config, bounds, currentZoom);
+		const tiles = getTileCoordsInBounds(cursor_bounds, currentZoom);
+		const places = await loadPlaces(tiles, default_config, mesh, currentZoom);
 
 		places.forEach((place) => {
 			if (place.category == 'dummy') {
@@ -50,7 +36,7 @@
 				.addTo(map);
 		});
 
-		const network = createNetwork(places, bounds, default_config);
+		const network = createNetwork(places, mesh, default_config);
 		const paths = createPathsFromNetwork(places, network);
 		const unique_str = Math.random().toString(36).slice(-8);
 
@@ -95,6 +81,21 @@
 		});
 	}
 
+	let bound_feature = {
+		type: 'Feature',
+		geometry: {
+			type: 'Polygon',
+			coordinates: [
+				[
+					[0, 0],
+					[0, 0],
+					[0, 0],
+					[0, 0]
+				]
+			]
+		}
+	};
+
 	onMount(() => {
 		map = new maplibre.Map({
 			container: mapId,
@@ -103,8 +104,51 @@
 			zoom: 5,
 			minZoom: 4
 		});
-
 		map.on('click', onClick);
+		map.on('mousemove', (e) => {
+			const bounds = map.getBounds();
+			const pointer = new Coordinates(e.lngLat.lat, e.lngLat.lng);
+			cursor_bounds = new Bounds(
+				bounds.getWest(),
+				bounds.getSouth(),
+				bounds.getEast(),
+				bounds.getNorth()
+			)
+				.moveCenter(pointer)
+				.shrink(0.2);
+
+			// update bound feature
+			bound_feature.geometry.coordinates = [
+				[
+					[cursor_bounds.ne.lng, cursor_bounds.ne.lat],
+					[cursor_bounds.ne.lng, cursor_bounds.sw.lat],
+					[cursor_bounds.sw.lng, cursor_bounds.sw.lat],
+					[cursor_bounds.sw.lng, cursor_bounds.ne.lat],
+					[cursor_bounds.ne.lng, cursor_bounds.ne.lat]
+				]
+			];
+
+			let source = map.getSource('bound-source');
+			if (source) {
+				source.setData(bound_feature as any);
+			}
+		});
+		map.on('load', () => {
+			map.addSource('bound-source', {
+				type: 'geojson',
+				data: bound_feature as any
+			});
+			map.addLayer({
+				id: 'bound-layer',
+				// stroke line
+				type: 'line',
+				source: 'bound-source',
+				paint: {
+					'line-color': '#ff0000',
+					'line-width': 5
+				}
+			});
+		});
 	});
 </script>
 

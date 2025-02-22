@@ -1,5 +1,5 @@
 import { tileToBBOX, type Tile } from '@mapbox/tilebelt';
-import { Bounds } from './geometry/bounds';
+import { Mesh } from './geometry/bounds';
 import { Coordinates } from './geometry/coordinates';
 import { TileXYZ } from './tilecoords';
 import { geojson } from 'flatgeobuf';
@@ -55,7 +55,7 @@ export class Place {
 export async function loadFeatures(
 	urls: string[],
 	tile_xyzs: TileXYZ[],
-	bounds: Bounds,
+	mesh: Mesh,
 	existing_names: Set<string>,
 	existing_coordinates: Coordinates[],
 	config: Config
@@ -116,7 +116,7 @@ export async function loadFeatures(
 
 			// avoid duplicate meshIDs
 			const unique_meshID_features = unique_name_features.filter((feature) => {
-				const meshID = bounds.meshID(feature.coordinates);
+				const meshID = mesh.meshID(feature.coordinates);
 				if (meshID === undefined) {
 					return false;
 				}
@@ -133,8 +133,8 @@ export async function loadFeatures(
 			let margined_features = [];
 
 			for (let feature of unique_meshID_features) {
-				const mesh_width_lng = bounds.meshNormalLng();
-				const mesh_width_lat = bounds.meshNormalLat();
+				const mesh_width_lng = mesh.meshNormalLng();
+				const mesh_width_lat = mesh.meshNormalLat();
 
 				let is_margin = true;
 				for (let coord of existing_coordinates) {
@@ -181,7 +181,7 @@ function shuffle(array: number[]) {
 export async function loadPlaces(
 	tile_xyzs: TileXYZ[],
 	config: Config,
-	bounds: Bounds,
+	mesh: Mesh,
 	currentZoom: number
 ): Promise<Place[]> {
 	const base_url = window.location.origin;
@@ -211,7 +211,7 @@ export async function loadPlaces(
 			feature_layers = await loadFeatures(
 				urls.slice(0, 3),
 				tile_xyzs,
-				bounds,
+				mesh,
 				existing_names,
 				existing_coordinates,
 				config
@@ -220,7 +220,7 @@ export async function loadPlaces(
 			feature_layers = await loadFeatures(
 				[urls[3]],
 				tile_xyzs,
-				bounds,
+				mesh,
 				existing_names,
 				existing_coordinates,
 				config
@@ -229,7 +229,7 @@ export async function loadPlaces(
 			feature_layers = await loadFeatures(
 				[urls[4]],
 				tile_xyzs,
-				bounds,
+				mesh,
 				existing_names,
 				existing_coordinates,
 				config
