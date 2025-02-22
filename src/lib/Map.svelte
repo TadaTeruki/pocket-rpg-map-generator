@@ -14,6 +14,8 @@
 	export let mapId;
 	export let mode: 'view' | 'edit' = 'view';
 	export let place_chosen: Place | undefined;
+	export let show_place_name = true;
+	export let error_message: string | undefined;
 
 	let map: maplibre.Map;
 
@@ -22,13 +24,30 @@
 
 	let placeArchives = new Map<string, [maplibre.Marker[], Place]>();
 
+	$: if (show_place_name) {
+		for (const [markers, _] of placeArchives.values()) {
+			markers[1].getElement().style.display = 'block';
+		}
+	} else {
+		for (const [markers, _] of placeArchives.values()) {
+			markers[1].getElement().style.display = 'none';
+		}
+	}
+
 	async function createNew() {
+		error_message = undefined;
+		place_chosen = undefined;
 		const mesh = meshFromConfig(default_config, cursor_bounds);
 
 		const currentZoom = Math.floor(map.getZoom());
 
 		const tiles = getTileCoordsInBounds(cursor_bounds, currentZoom);
 		const places = await loadPlaces(tiles, default_config, mesh, currentZoom);
+
+		if (places.length === 0) {
+			error_message = '対応していない地域です';
+			return;
+		}
 
 		places.forEach((place) => {
 			if (place.category == 'dummy') {
@@ -46,7 +65,6 @@
 						});
 						placeArchives.delete(place.id);
 					} else {
-						// apply prev_place
 						return;
 					}
 				}
@@ -64,6 +82,8 @@
 			const marker_name = new maplibre.Marker({ element: markers.name })
 				.setLngLat([place.coordinates.lng, place.coordinates.lat] as [number, number])
 				.addTo(map);
+
+			marker_name.getElement().style.display = show_place_name ? 'block' : 'none';
 
 			placeArchives.set(place.id, [[marker_icon, marker_name], place]);
 		});

@@ -6,14 +6,23 @@
 
 	let mode: 'view' | 'edit' = 'view';
 	let place_chosen: Place | undefined;
+	let show_place_name: boolean;
+	let error_message: string | undefined;
 
-	let place_name_cache = '';
-	let place_name_visible = true;
+	let message = '';
+
+	$: if (error_message) {
+		message = error_message;
+	} else {
+		message = '';
+	}
+
+	let place_name_cache: string | undefined;
 	$: if (place_name_cache !== place_chosen?.name) {
-		place_name_visible = false;
-		place_name_cache = place_chosen?.name ?? '';
+		place_name_cache = place_chosen?.name;
+		message = '';
 		setTimeout(() => {
-			place_name_visible = true;
+			message = place_chosen?.name_display;
 		}, 1);
 	}
 
@@ -57,7 +66,7 @@
 </script>
 
 <div class="h-screen w-screen overflow-hidden border-10 border-indigo-950">
-	<Map mapId={'fullmap'} bind:mode bind:place_chosen />
+	<Map mapId={'fullmap'} bind:mode bind:place_chosen bind:show_place_name bind:error_message />
 </div>
 <canvas id="overlay" class="pointer-events-none absolute top-0 left-0 h-full w-full"></canvas>
 <div
@@ -67,13 +76,13 @@
 		🗾 捕獲系RPG風 マップジェネレータ
 	</div>
 	<div class="flex h-full w-full max-w-2xl flex-col items-center justify-center">
-		{#if (mode === 'edit' || place_chosen) && place_name_visible}
+		{#if message || mode === 'edit'}
 			<div
 				class="animBoard pointer-events-auto mt-5 flex items-center justify-center rounded-sm bg-indigo-900/75 px-3 py-1 text-lg font-bold text-white"
 			>
 				{#if mode === 'view'}
-					{#if place_chosen}
-						{place_chosen.name_display}
+					{#if message}
+						{message}
 					{/if}
 				{:else}
 					タップ / クリックで場所を選ぶ
@@ -81,8 +90,14 @@
 			</div>
 		{/if}
 		<div class="flex-grow"></div>
-		<div class="pointer-events-auto mb-5 flex items-center justify-center bg-indigo-900 px-1 py-1">
+		<div
+			class="pointer-events-auto mb-5 flex flex-col items-center justify-center bg-indigo-900 px-1 py-1"
+		>
 			<ButtonNew bind:mode>＋ 新しい地方</ButtonNew>
+			<div>
+				<input type="checkbox" bind:checked={show_place_name} class="h-4 w-4 text-indigo-900" />
+				<label for="show_place_name" class="text-sm text-white">シティ・タウン名を表示</label>
+			</div>
 		</div>
 	</div>
 </div>
