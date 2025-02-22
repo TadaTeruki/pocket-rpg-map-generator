@@ -5,7 +5,7 @@ import { loadPlaces, Place } from '$lib/mapcontent/features';
 import { createMarker } from '$lib/mapcontent/marker';
 import maplibre from 'maplibre-gl';
 import { createNetwork, createPathsFromNetwork, type Path } from './network';
-import type { PlaceOwnerTable } from '$lib/mapcontent/markerowner';
+import type { MarkerOwnerTable } from '$lib/mapcontent/markerowner';
 
 export type GenerationResult = {
 	id: string;
@@ -132,7 +132,7 @@ export function setIconCallback(result: GenerationResult, icon_callback: (place:
 export function toggleGenerationResult(
 	map: maplibre.Map,
 	result: GenerationResult,
-	marker_owner_table: PlaceOwnerTable,
+	marker_owner_table: MarkerOwnerTable,
 	active: boolean
 ) {
 	if (result.result !== 'success') {

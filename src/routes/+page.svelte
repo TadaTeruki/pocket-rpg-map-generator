@@ -4,7 +4,7 @@
 	import type { Place } from '$lib/mapcontent/features';
 	import { onMount } from 'svelte';
 
-	let mode: 'view' | 'edit' = 'edit';
+	let mode: 'view' | 'edit' = 'view';
 	let place_chosen: Place | undefined;
 	let show_place_name: boolean;
 	let error_message: string | undefined;

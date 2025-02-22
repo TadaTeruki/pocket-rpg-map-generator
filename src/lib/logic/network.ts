@@ -3,6 +3,7 @@ import type { Place } from '../mapcontent/features';
 import type { Mesh } from '../geometry/bounds';
 import { Coordinates } from '../geometry/coordinates';
 import { LineSegment } from '../geometry/line';
+import { SeedableRng } from './seedablelng';
 
 class DisjointSet {
 	parent: number[];
@@ -33,6 +34,8 @@ export function createNetwork(places: Place[], mesh: Mesh, config: Config): Map<
 
 	const mesh_width_lng = mesh.meshNormalLng();
 	const mesh_width_lat = mesh.meshNormalLat();
+
+	let rng = new SeedableRng(mesh.bounds.toHash());
 
 	const lower_connection_lat = mesh_width_lat * config.lower_connection_scale;
 	const lower_connection_lng = mesh_width_lng * config.lower_connection_scale;
@@ -84,10 +87,10 @@ export function createNetwork(places: Place[], mesh: Mesh, config: Config): Map<
 			if (
 				(distance < lower_connection_lat &&
 					distance < lower_connection_lng &&
-					Math.random() < config.lower_connection_probability) ||
+					rng.next() < config.lower_connection_probability) ||
 				(distance > upper_connection_lat &&
 					distance > upper_connection_lng &&
-					Math.random() < config.upper_connection_probability)
+					rng.next()  < config.upper_connection_probability)
 			) {
 				// check if there is any intersection
 				let intersected = false;
@@ -151,7 +154,7 @@ export function createPathsFromNetwork(
 			const to_place = places[to];
 			let mid_coords: Coordinates;
 
-			if (Math.random() < 0.5) {
+			if (from_place.coordinates.toHash() < to_place.coordinates.toHash()) {
 				mid_coords = new Coordinates(from_place.coordinates.lat, to_place.coordinates.lng);
 			} else {
 				mid_coords = new Coordinates(to_place.coordinates.lat, from_place.coordinates.lng);

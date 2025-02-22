@@ -7,7 +7,6 @@
 	import { loadMapStyle } from './mapcontent/style';
 	import { loadDefaultConfig } from './config';
 	import {
-		generate,
 		generate_from_id,
 		getGenerationID,
 		setIconCallback,
@@ -15,7 +14,7 @@
 		togglePlaceNameVisibility,
 		type GenerationResult
 	} from './logic/generation';
-	import { generation_history, GenerationHistory } from '../store';
+	import { generation_history } from '../store';
 	import { createMarkerOwnerTable } from './mapcontent/markerowner';
 
 	export let center = [138.727, 38.362];
@@ -207,6 +206,9 @@
 			if (history_str) {
 				const history = history_str.split(',');
 				register(history);
+				mode = 'view';
+			} else {
+				mode = 'edit';
 			}
 		});
 	});

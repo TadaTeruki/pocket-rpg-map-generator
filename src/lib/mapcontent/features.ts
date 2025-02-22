@@ -4,6 +4,7 @@ import { Coordinates } from '../geometry/coordinates';
 import { TileXYZ } from '../geometry/tilecoords';
 import { geojson } from 'flatgeobuf';
 import type { Config } from '../config';
+import { SeedableRng } from '$lib/logic/seedablelng';
 
 export class PointFeature {
 	coordinates: Coordinates;
@@ -174,12 +175,12 @@ export async function loadFeatures(
 	return features_all;
 }
 
-function shuffle(array: number[]) {
+function shuffle(array: number[], rng: SeedableRng): number[] {
 	let currentIndex = array.length,
 		randomIndex;
 
 	while (currentIndex != 0) {
-		randomIndex = Math.floor(Math.random() * currentIndex);
+		randomIndex = Math.floor(rng.next() * currentIndex);
 		currentIndex--;
 
 		[array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
@@ -209,6 +210,8 @@ export async function loadPlaces(
 	let features_D: PointFeature[] = [];
 
 	let features: PointFeature[] = [];
+
+	let rng = new SeedableRng(mesh.bounds.toHash());
 
 	for (let i = 0; i < 3; i++) {
 		let feature_layers: PointFeature[][] = [];
@@ -253,7 +256,7 @@ export async function loadPlaces(
 			features = features.concat(feature_layers[layer]);
 			if (features_C.length == 0 && features.length >= config.num_C * config.extract_margin_scale) {
 				let indices = Array.from({ length: features.length }, (_, i) => i);
-				indices = shuffle(indices);
+				indices = shuffle(indices, rng);
 				let indices_apply = indices.slice(0, config.num_C);
 				for (let index of indices_apply) {
 					features_C.push(features[index]);
@@ -267,7 +270,7 @@ export async function loadPlaces(
 				features.length >= config.num_T * config.extract_margin_scale
 			) {
 				let indices = Array.from({ length: features.length }, (_, i) => i);
-				indices = shuffle(indices);
+				indices = shuffle(indices, rng);
 				let indices_apply = indices.slice(0, config.num_T);
 				for (let index of indices_apply) {
 					features_T.push(features[index]);
@@ -281,7 +284,7 @@ export async function loadPlaces(
 				features.length >= config.num_D * config.extract_margin_scale
 			) {
 				let indices = Array.from({ length: features.length }, (_, i) => i);
-				indices = shuffle(indices);
+				indices = shuffle(indices, rng);
 				let indices_apply = indices.slice(0, config.num_D);
 				for (let index of indices_apply) {
 					features_D.push(features[index]);
@@ -301,7 +304,7 @@ export async function loadPlaces(
 	// if features_T is empty, fill it with features from features_C
 	if (features_T.length == 0) {
 		let indices = Array.from({ length: features_C.length }, (_, i) => i);
-		indices = shuffle(indices);
+		indices = shuffle(indices, rng);
 		let indices_apply = indices.slice(0, config.num_C / 2);
 		for (let index of indices_apply) {
 			features_T.push(features_C[index]);
