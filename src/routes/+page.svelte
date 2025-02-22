@@ -1,6 +1,21 @@
 <script lang="ts">
+	import ButtonNew from '$lib/ButtonNew.svelte';
+	import type { Place } from '$lib/features';
 	import Map from '$lib/Map.svelte';
 	import { onMount } from 'svelte';
+
+	let mode: 'view' | 'edit' = 'view';
+	let place_chosen: Place | undefined;
+
+	let place_name_cache = '';
+	let place_name_visible = true;
+	$: if (place_name_cache !== place_chosen?.name) {
+		place_name_visible = false;
+		place_name_cache = place_chosen?.name ?? '';
+		setTimeout(() => {
+			place_name_visible = true;
+		}, 1);
+	}
 
 	onMount(() => {
 		// canvas overlay draws a white rectangle line on cursor
@@ -41,20 +56,54 @@
 	});
 </script>
 
-<Map mapId={'fullmap'} />
+<div class="h-screen w-screen overflow-hidden border-10 border-indigo-950">
+	<Map mapId={'fullmap'} bind:mode bind:place_chosen />
+</div>
 <canvas id="overlay" class="pointer-events-none absolute top-0 left-0 h-full w-full"></canvas>
 <div
-	class="pointer-events-none absolute top-0 left-0 flex h-full w-full items-center justify-center"
+	class="pointer-events-none absolute top-0 left-0 flex h-full w-full flex-col items-center justify-center"
 >
-	<div class="flex h-full w-full max-w-2xl flex-col items-center justify-center bg-[#88888855]">
-		<div>this is header</div>
+	<div class="text-md flex h-7 w-full items-center justify-center bg-indigo-900 p-4 text-white">
+		🗾 捕獲系RPG風 マップジェネレータ
+	</div>
+	<div class="flex h-full w-full max-w-2xl flex-col items-center justify-center">
+		{#if (mode === 'edit' || place_chosen) && place_name_visible}
+			<div
+				class="animBoard pointer-events-auto mt-5 flex items-center justify-center rounded-sm bg-indigo-900/75 px-3 py-1 text-lg font-bold text-white"
+			>
+				{#if mode === 'view'}
+					{#if place_chosen}
+						{place_chosen.name_display}
+					{/if}
+				{:else}
+					タップ / クリックで場所を選ぶ
+				{/if}
+			</div>
+		{/if}
 		<div class="flex-grow"></div>
-		<div>this is footer</div>
+		<div class="pointer-events-auto mb-5 flex items-center justify-center bg-indigo-900 px-1 py-1">
+			<ButtonNew bind:mode>＋ 新しい地方</ButtonNew>
+		</div>
 	</div>
 </div>
 
 <style>
 	:global(#fullmap) {
-		@apply h-screen w-full overflow-hidden;
+		@apply h-full w-full overflow-hidden;
+	}
+
+	.animBoard {
+		animation: pulse 0.5s linear;
+	}
+
+	@keyframes pulse {
+		0% {
+			/* 表示位置を少し上に */
+			transform: translateY(-100px);
+		}
+		100% {
+			/* 表示位置を少し下に */
+			transform: translateY(0);
+		}
 	}
 </style>

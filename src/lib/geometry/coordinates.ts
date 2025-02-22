@@ -14,4 +14,12 @@ export class Coordinates {
 	distance(coord: Coordinates): number {
 		return Math.hypot(this.lat - coord.lat, this.lng - coord.lng);
 	}
+
+	simplify(): Coordinates {
+		return new Coordinates(Math.round(this.lat * 1e3) / 1e3, Math.round(this.lng * 1e3) / 1e3);
+	}
+
+	toString(): string {
+		return `(${this.lat}, ${this.lng})`;
+	}
 }

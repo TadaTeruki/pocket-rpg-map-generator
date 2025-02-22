@@ -24,9 +24,18 @@ export function pointFeaturesFromGeoJson(features: Object[]): PointFeature[] {
 	});
 }
 
+function hiragana2katakana(str: string): string {
+	return str.replace(/[\u3041-\u3096]/g, function (match) {
+		var chr = match.charCodeAt(0) + 0x60;
+		return String.fromCharCode(chr);
+	});
+}
+
 export class Place {
 	coordinates: Coordinates;
+	id: string;
 	name: string;
+	name_display: string;
 	category: 'city' | 'town' | 'dummy';
 	position: number;
 
@@ -38,8 +47,10 @@ export class Place {
 	) {
 		this.coordinates = coordinates;
 		this.name = name;
+		this.id = name + coordinates.simplify().toString();
 		this.category = category;
 		this.position = position;
+		this.name_display = hiragana2katakana(name) + (category == 'city' ? 'シティ' : 'タウン');
 	}
 
 	nameHash(): number {

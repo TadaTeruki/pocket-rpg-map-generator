@@ -7,12 +7,21 @@ export type MarkerShape = {
 	y_transform: number; // -1-1
 };
 
-export function createMarker(place: Place): HTMLElement {
-	const el = document.createElement('div');
-	el.className = 'marker';
-	el.style.backgroundColor = place.category == 'city' ? '#f67070' : '#7d97f0';
+export type MarkerElements = {
+	level: number;
+	icon: HTMLElement;
+	name: HTMLElement;
+};
+
+export function createMarker(place: Place): MarkerElements {
+	const icon = document.createElement('div');
+	icon.className = 'marker';
+	icon.style.backgroundColor = place.category == 'city' ? '#f67070' : '#7d97f0';
 
 	const hash = place.nameHash() & 0x7fffffff;
+
+	let city_level = Math.floor(4 * place.position);
+	let town_level = Math.floor(5 * place.position);
 
 	let width_size = 1,
 		height_size = 1;
@@ -22,7 +31,7 @@ export function createMarker(place: Place): HTMLElement {
 			[2, 2],
 			[1, 2],
 			[2, 1]
-		][Math.floor(4 * place.position)];
+		][city_level];
 	} else {
 		[width_size, height_size] = [
 			[1, 2],
@@ -30,7 +39,7 @@ export function createMarker(place: Place): HTMLElement {
 			[1, 1],
 			[1, 1],
 			[1, 1]
-		][Math.floor(5 * place.position)];
+		][town_level];
 	}
 
 	let x_transform = 0,
@@ -49,27 +58,41 @@ export function createMarker(place: Place): HTMLElement {
 		y_transform: y_transform
 	};
 
-	el.style.width = `${15 * shape.width_size}px`;
-	el.style.height = `${15 * shape.height_size}px`;
-	el.style.marginLeft = `${-10 * shape.x_transform}px`;
-	el.style.marginTop = `${-10 * shape.y_transform}px`;
+	icon.style.width = `${15 * shape.width_size}px`;
+	icon.style.height = `${15 * shape.height_size}px`;
+	icon.style.marginLeft = `${-10 * shape.x_transform}px`;
+	icon.style.marginTop = `${-10 * shape.y_transform}px`;
 
-	el.style.borderRadius = '5px';
-	el.style.borderWidth = '3px';
+	icon.style.borderRadius = '5px';
+	icon.style.borderWidth = '3px';
 
 	const lightColor = place.category == 'city' ? '#ffaba8' : '#c0d0f5';
 	const darkColor = place.category == 'city' ? '#cc4547' : '#7b80c7';
 
-	el.style.borderRightColor = darkColor;
-	el.style.borderBottomColor = darkColor;
-	el.style.borderLeftColor = lightColor;
-	el.style.borderTopColor = lightColor;
+	icon.style.borderRightColor = darkColor;
+	icon.style.borderBottomColor = darkColor;
+	icon.style.borderLeftColor = lightColor;
+	icon.style.borderTopColor = lightColor;
 
-	el.style.boxShadow = `0 0 0 3px #ffffffcc`;
+	icon.style.boxShadow = `0 0 0 3px #ffffffcc`;
 
-	el.addEventListener('mousemove', () => {
-		window.alert(place.name);
-	});
+	const name = document.createElement('div');
+	name.className = 'marker-name';
+	name.textContent = place.name_display;
 
-	return el;
+	name.style.marginLeft = `${-10 * shape.x_transform}px`;
+	name.style.marginTop = `${-10 * shape.y_transform + 20}px`;
+
+	name.style.backgroundColor = '#00005555';
+	name.style.color = '#ffffff';
+	name.style.fontSize = '10px';
+	name.style.fontWeight = 'bold';
+	name.style.padding = '1px 3px';
+	name.style.borderRadius = '3px';
+
+	return {
+		level: city_level * 10000 + town_level,
+		icon: icon,
+		name: name
+	};
 }

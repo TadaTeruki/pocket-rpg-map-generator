@@ -4,7 +4,7 @@
 	import { getTileCoordsInBounds } from './tilecoords';
 	import { createNetwork, createPathsFromNetwork } from './model';
 	import { loadDefaultConfig, meshFromConfig } from './config';
-	import { loadPlaces } from './features';
+	import { loadPlaces, Place } from './features';
 	import { createMarker } from './marker';
 	import { loadMapStyle } from './style';
 	import { Bounds } from './geometry/bounds';
@@ -12,13 +12,17 @@
 
 	export let center = [138.727, 38.362];
 	export let mapId;
+	export let mode: 'view' | 'edit' = 'view';
+	export let place_chosen: Place | undefined;
 
 	let map: maplibre.Map;
 
 	const default_config = loadDefaultConfig();
 	let cursor_bounds = new Bounds(0, 0, 0, 0);
 
-	async function onClick() {
+	let placeArchives = new Map<string, [maplibre.Marker[], Place]>();
+
+	async function createNew() {
 		const mesh = meshFromConfig(default_config, cursor_bounds);
 
 		const currentZoom = Math.floor(map.getZoom());
@@ -30,10 +34,38 @@
 			if (place.category == 'dummy') {
 				return;
 			}
-			// add marker to map
-			new maplibre.Marker({ element: createMarker(place) })
+
+			if (placeArchives.has(place.id)) {
+				const archive = placeArchives.get(place.id);
+				if (archive) {
+					const prev_place = archive[1];
+					if (place.position < prev_place.position) {
+						// apply place
+						archive[0].forEach((marker) => {
+							marker.remove();
+						});
+						placeArchives.delete(place.id);
+					} else {
+						// apply prev_place
+						return;
+					}
+				}
+			}
+
+			let markers = createMarker(place);
+			markers.icon.addEventListener('mousemove', () => {
+				place_chosen = place;
+			});
+
+			const marker_icon = new maplibre.Marker({ element: markers.icon })
 				.setLngLat([place.coordinates.lng, place.coordinates.lat] as [number, number])
 				.addTo(map);
+
+			const marker_name = new maplibre.Marker({ element: markers.name })
+				.setLngLat([place.coordinates.lng, place.coordinates.lat] as [number, number])
+				.addTo(map);
+
+			placeArchives.set(place.id, [[marker_icon, marker_name], place]);
 		});
 
 		const network = createNetwork(places, mesh, default_config);
@@ -96,6 +128,28 @@
 		}
 	};
 
+	let loaded = false;
+
+	$: if (loaded) {
+		if (mode === 'edit') {
+			if (!map.getLayer('bound-layer')) {
+				map.addLayer({
+					id: 'bound-layer',
+					type: 'line',
+					source: 'bound-source',
+					paint: {
+						'line-color': '#ff5577',
+						'line-width': 6
+					}
+				});
+			}
+		} else {
+			if (map.getLayer('bound-layer')) {
+				map.removeLayer('bound-layer');
+			}
+		}
+	}
+
 	onMount(() => {
 		map = new maplibre.Map({
 			container: mapId,
@@ -104,7 +158,12 @@
 			zoom: 5,
 			minZoom: 4
 		});
-		map.on('click', onClick);
+		map.on('click', () => {
+			if (mode === 'edit') {
+				createNew();
+				mode = 'view';
+			}
+		});
 		map.on('mousemove', (e) => {
 			const bounds = map.getBounds();
 			const pointer = new Coordinates(e.lngLat.lat, e.lngLat.lng);
@@ -138,16 +197,8 @@
 				type: 'geojson',
 				data: bound_feature as any
 			});
-			map.addLayer({
-				id: 'bound-layer',
-				// stroke line
-				type: 'line',
-				source: 'bound-source',
-				paint: {
-					'line-color': '#ff0000',
-					'line-width': 5
-				}
-			});
+
+			loaded = true;
 		});
 	});
 </script>
