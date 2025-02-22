@@ -1,5 +1,5 @@
 import { meshFromConfig, type Config } from '$lib/config';
-import type { Bounds } from '$lib/geometry/bounds';
+import { Bounds } from '$lib/geometry/bounds';
 import { getTileCoordsInBounds } from '$lib/geometry/tilecoords';
 import { loadPlaces, Place } from '$lib/mapcontent/features';
 import { createMarker } from '$lib/mapcontent/marker';
@@ -19,8 +19,14 @@ export type GenerationResult = {
 	lines_geojson: Object[];
 };
 
-function unique_ID_from_bounds_and_zoom(bounds: Bounds, zoom: number): string {
+export function getGenerationID(bounds: Bounds, zoom: number): string {
 	return `${bounds.sw.lng}-${bounds.sw.lat}-${bounds.ne.lng}-${bounds.ne.lat}-${zoom}`;
+}
+
+export async function generate_from_id(id: string, config: Config): Promise<GenerationResult> {
+	const [west, south, east, north, zoom] = id.split('-').map(Number);
+	const bounds = new Bounds(west, south, east, north);
+	return generate(bounds, zoom, config);
 }
 
 export async function generate(
@@ -28,7 +34,7 @@ export async function generate(
 	zoom: number,
 	config: Config
 ): Promise<GenerationResult> {
-	const id = unique_ID_from_bounds_and_zoom(bounds, zoom);
+	const id = getGenerationID(bounds, zoom);
 
 	const mesh = meshFromConfig(config, bounds);
 

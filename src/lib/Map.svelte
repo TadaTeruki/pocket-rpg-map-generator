@@ -8,12 +8,14 @@
 	import { loadDefaultConfig } from './config';
 	import {
 		generate,
+		generate_from_id,
+		getGenerationID,
 		setIconCallback,
 		toggleGenerationResult,
 		togglePlaceNameVisibility,
 		type GenerationResult
 	} from './logic/generation';
-	import { generation_history } from '../store';
+	import { generation_history, GenerationHistory } from '../store';
 	import { createMarkerOwnerTable } from './mapcontent/markerowner';
 
 	export let center = [138.727, 38.362];
@@ -104,6 +106,49 @@
 		});
 	}
 
+	async function register(generation_ids: string[]) {
+		const results = Promise.all(
+			generation_ids.map((id) => {
+				return generate_from_id(id, default_config);
+			})
+		);
+
+		results.then((results) => {
+			let new_ids: string[] = [];
+			results.forEach((result) => {
+				if (result.result === 'error') {
+					error_message = result.error_message;
+				} else {
+					generation_result_map.set(result.id, result);
+					setIconCallback(result, (place) => {
+						place_chosen = place;
+					});
+					new_ids.push(result.id);
+				}
+			});
+
+			generation_history.update((history) => {
+				history.future_ids().forEach((id) => {
+					generation_result_map.delete(id);
+				});
+				new_ids.forEach((id) => {
+					history.push(id);
+				});
+				return history;
+			});
+
+			generation_history.subscribe((history) => {
+				const result_id_str = history.past_and_present_ids().join(',');
+				const base_url = window.location.href.split('?')[0];
+				if (result_id_str === '') {
+					window.history.replaceState({}, '', `${base_url}`);
+				} else {
+					window.history.replaceState({}, '', `${base_url}?history=${result_id_str}`);
+				}
+			});
+		});
+	}
+
 	onMount(() => {
 		map = new maplibre.Map({
 			container: mapId,
@@ -117,22 +162,7 @@
 			place_chosen = undefined;
 			if (mode === 'edit') {
 				mode = 'view';
-				const result = await generate(cursor_bounds, map.getZoom(), default_config);
-				if (result.result === 'error') {
-					error_message = result.error_message;
-				} else {
-					generation_result_map.set(result.id, result);
-					setIconCallback(result, (place) => {
-						place_chosen = place;
-					});
-					generation_history.update((history) => {
-						history.future_ids().forEach((id) => {
-							generation_result_map.delete(id);
-						});
-						history.push(result.id);
-						return history;
-					});
-				}
+				register([getGenerationID(cursor_bounds, map.getZoom())]);
 			}
 		});
 		map.on('mousemove', (e) => {
@@ -170,6 +200,14 @@
 			});
 
 			loaded = true;
+
+			// read history from query parameter
+			const url = new URL(window.location.href);
+			const history_str = url.searchParams.get('history');
+			if (history_str) {
+				const history = history_str.split(',');
+				register(history);
+			}
 		});
 	});
 </script>
