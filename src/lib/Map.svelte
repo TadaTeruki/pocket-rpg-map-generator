@@ -24,8 +24,8 @@
 	export let place_chosen: Place | undefined;
 	export let show_place_name = true;
 	export let error_message: string | undefined;
-
-	let map: maplibre.Map;
+	export let current_url = '';
+	export let map: maplibre.Map;
 
 	const default_config = loadDefaultConfig();
 	let cursor_bounds = new Bounds(0, 0, 0, 0);
@@ -71,6 +71,19 @@
 	}
 
 	generation_history.subscribe((history) => {
+		// history にない generation_result_map の要素を削除
+		const keys = Array.from(generation_result_map.keys());
+		const all_ids_as_set = new Set(history.all_ids());
+		keys.forEach((id) => {
+			if (!all_ids_as_set.has(id)) {
+				const result = generation_result_map.get(id);
+				if (result) {
+					toggleGenerationResult(map, result, new Map(), false);
+				}
+				generation_result_map.delete(id);
+			}
+		});
+
 		let past_and_present_maps = new Map();
 		history.past_and_present_ids().forEach((generation_id) => {
 			const result = generation_result_map.get(generation_id);
@@ -138,13 +151,16 @@
 			});
 
 			generation_history.subscribe((history) => {
-				const result_id_str = history.past_and_present_ids().join(',');
+				const result_id_str = history.serialize();
 				const base_url = window.location.href.split('?')[0];
+				let url = '';
 				if (result_id_str === '') {
-					window.history.replaceState({}, '', `${base_url}`);
+					url = base_url;
 				} else {
-					window.history.replaceState({}, '', `${base_url}?history=${result_id_str}`);
+					url = `${base_url}?history=${result_id_str}`;
 				}
+				current_url = url;
+				window.history.replaceState({}, '', url);
 			});
 		});
 	}
@@ -155,7 +171,10 @@
 			style: loadMapStyle(),
 			center: [center[0], center[1]],
 			zoom: 5,
-			minZoom: 4
+			minZoom: 4,
+			canvasContextAttributes: {
+				preserveDrawingBuffer: true
+			}
 		});
 		map.on('click', async () => {
 			error_message = undefined;
@@ -198,7 +217,7 @@
 		const url = new URL(window.location.href);
 		const history_str = url.searchParams.get('history');
 		if (history_str) {
-			const history = history_str.split(',');
+			const history = Array.from(new Set(history_str.split(',')));
 
 			let new_bounds: Bounds[] = [];
 			let new_zoom = Infinity;

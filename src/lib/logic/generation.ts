@@ -20,6 +20,8 @@ export type GenerationResult = {
 };
 
 export function getGenerationID(bounds: Bounds, zoom: number): string {
+	bounds = bounds.simplify();
+	zoom = Math.floor(zoom);
 	return `${bounds.sw.lng}-${bounds.sw.lat}-${bounds.ne.lng}-${bounds.ne.lat}-${zoom}`;
 }
 

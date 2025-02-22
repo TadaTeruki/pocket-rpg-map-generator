@@ -35,6 +35,12 @@ export class GenerationHistory {
 		return this;
 	}
 
+	reset(): GenerationHistory {
+		this.head = -1;
+		this.result_ids = [];
+		return this;
+	}
+
 	past_and_present_ids(): string[] {
 		return this.result_ids.slice(0, this.head + 1);
 	}
@@ -49,6 +55,10 @@ export class GenerationHistory {
 
 	canUndo(): boolean {
 		return this.head >= 0;
+	}
+
+	serialize(): string {
+		return this.past_and_present_ids().join(',');
 	}
 
 	canRedo(): boolean {

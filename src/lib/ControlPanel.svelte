@@ -2,6 +2,7 @@
 	import { generation_history } from '../store';
 
 	export let mode: 'view' | 'edit';
+	export let sharing: boolean;
 
 	let undo_enabled = false;
 	let redo_enabled = false;
@@ -11,15 +12,25 @@
 	});
 </script>
 
-<div class="flex items-center justify-center">
+<div class="m-1 flex items-center justify-center gap-2">
 	<button
-		class="color-view m-2 flex h-14 w-14 items-center justify-center rounded-lg bg-indigo-900 text-2xl font-bold text-white"
+		class="color-view centerbox h-14 w-14 rounded-lg bg-indigo-900 text-2xl text-2xl font-bold text-white"
 		on:click={() => {
 			generation_history.update((history) => history.undo());
 		}}
 	>
 		{#if undo_enabled}
 			↩
+		{/if}
+	</button>
+	<button
+		class="color-view centerbox h-14 w-14 rounded-lg bg-indigo-900 text-2xl text-2xl font-bold text-white"
+		on:click={() => {
+			generation_history.update((history) => history.redo());
+		}}
+	>
+		{#if redo_enabled}
+			↪
 		{/if}
 	</button>
 	<button
@@ -43,18 +54,32 @@
 		{/if}
 	</button>
 	<button
-		class="color-view m-2 flex h-14 w-14 items-center justify-center rounded-lg bg-indigo-900 text-2xl font-bold text-white"
+		class="color-view centerbox nowrap h-14 w-14 rounded-lg bg-indigo-900 text-2xl text-sm font-bold text-white"
 		on:click={() => {
-			generation_history.update((history) => history.redo());
+			if (confirm('作業内容を全て消します。よろしいですか？')) {
+				generation_history.update((history) => history.reset());
+			}
 		}}
 	>
-		{#if redo_enabled}
-			↪
+		全消
+	</button>
+	<button
+		class="color-view centerbox nowrap h-14 w-14 rounded-lg bg-indigo-900 text-2xl text-sm font-bold text-white"
+		on:click={() => {
+			sharing = !sharing;
+		}}
+	>
+		{#if !sharing}
+			共有
 		{/if}
 	</button>
 </div>
 
 <style>
+	.centerbox {
+		@apply flex items-center justify-center;
+	}
+
 	.color-edit {
 		border-color: #1eda9b;
 		border-width: 5px;

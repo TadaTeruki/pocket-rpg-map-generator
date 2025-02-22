@@ -86,6 +86,12 @@ export class Bounds {
 		);
 	}
 
+	simplify(): Bounds {
+		const sw = this.sw.simplify();
+		const ne = this.ne.simplify();
+		return new Bounds(sw.lng, sw.lat, ne.lng, ne.lat);
+	}
+
 	toHash(): number {
 		return this.sw.toHash() ^ this.ne.toHash();
 	}
