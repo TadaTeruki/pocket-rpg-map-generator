@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import maplibre from 'maplibre-gl';
-	import { getTileCoordsInBounds } from './tilecoords';
-	import { createNetwork, createPathsFromNetwork } from './model';
-	import { loadDefaultConfig, meshFromConfig } from './config';
-	import { loadPlaces, Place } from './features';
-	import { createMarker } from './marker';
-	import { loadMapStyle } from './style';
+	import { getTileCoordsInBounds } from './geometry/tilecoords';
 	import { Bounds } from './geometry/bounds';
 	import { Coordinates } from './geometry/coordinates';
+	import { loadPlaces, type Place } from './mapcontent/features';
+	import { loadMapStyle } from './mapcontent/style';
+	import { createMarker } from './mapcontent/marker';
+	import { loadDefaultConfig, meshFromConfig } from './config';
+	import { createNetwork, createPathsFromNetwork } from './logic/network';
 
 	export let center = [138.727, 38.362];
 	export let mapId;

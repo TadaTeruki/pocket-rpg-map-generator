@@ -1,4 +1,4 @@
-import type { Bounds } from './geometry/bounds';
+import type { Bounds } from './bounds';
 
 function long2tile(lon: number, zoom: number): number {
 	return Math.floor(((lon + 180) / 360) * Math.pow(2, zoom));

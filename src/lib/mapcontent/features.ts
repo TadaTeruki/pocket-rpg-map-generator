@@ -1,9 +1,9 @@
 import { tileToBBOX, type Tile } from '@mapbox/tilebelt';
-import { Mesh } from './geometry/bounds';
-import { Coordinates } from './geometry/coordinates';
-import { TileXYZ } from './tilecoords';
+import { Mesh } from '../geometry/bounds';
+import { Coordinates } from '../geometry/coordinates';
+import { TileXYZ } from '../geometry/tilecoords';
 import { geojson } from 'flatgeobuf';
-import type { Config } from './config';
+import type { Config } from '../config';
 
 export class PointFeature {
 	coordinates: Coordinates;

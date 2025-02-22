@@ -1,7 +1,7 @@
 <script lang="ts">
-	import ButtonNew from '$lib/ButtonNew.svelte';
-	import type { Place } from '$lib/features';
+	import ControlPanel from '$lib/ControlPanel.svelte';
 	import Map from '$lib/Map.svelte';
+	import type { Place } from '$lib/mapcontent/features';
 	import { onMount } from 'svelte';
 
 	let mode: 'view' | 'edit' = 'edit';
@@ -93,7 +93,7 @@
 		<div
 			class="pointer-events-auto mb-5 flex flex-col items-center justify-center bg-indigo-900 px-1 py-1"
 		>
-			<ButtonNew bind:mode>＋ 新しい地方</ButtonNew>
+			<ControlPanel bind:mode>＋ 新しい地方</ControlPanel>
 			<div>
 				<input type="checkbox" bind:checked={show_place_name} class="h-4 w-4 text-indigo-900" />
 				<label for="show_place_name" class="text-sm text-white">シティ・タウン名を表示</label>

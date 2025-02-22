@@ -1,8 +1,8 @@
-import type { Config } from './config';
-import type { Place } from './features';
-import type { Mesh } from './geometry/bounds';
-import { Coordinates } from './geometry/coordinates';
-import { LineSegment } from './geometry/line';
+import type { Config } from '../config';
+import type { Place } from '../mapcontent/features';
+import type { Mesh } from '../geometry/bounds';
+import { Coordinates } from '../geometry/coordinates';
+import { LineSegment } from '../geometry/line';
 
 class DisjointSet {
 	parent: number[];
