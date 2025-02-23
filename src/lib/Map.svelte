@@ -196,7 +196,7 @@
 				source.setData(bound_feature as any);
 			}
 
-			if (mode === 'edit') {
+			if (source && mode === 'edit') {
 				if (map.getLayer('bound-layer')) {
 					map.removeLayer('bound-layer');
 				}
