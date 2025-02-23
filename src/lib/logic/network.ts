@@ -3,6 +3,7 @@ import type { Place } from '../mapcontent/features';
 import type { Mesh } from '../geometry/bounds';
 import { Coordinates } from '../geometry/coordinates';
 import { LineSegment } from '../geometry/line';
+import Delaunator from 'delaunator';
 import { SeedableRng } from './seedablelng';
 
 class DisjointSet {
@@ -28,113 +29,108 @@ class DisjointSet {
 	}
 }
 
+type PathCandidate = {
+	from: number;
+	to: number;
+	distance: number;
+};
+
 export function createNetwork(places: Place[], mesh: Mesh, config: Config): Map<number, number[]> {
-	let network = new Map<number, Set<number>>();
-	let disjoint_set = new DisjointSet(places.length);
+	// const mesh_width_lng = mesh.meshNormalLng();
+	// const mesh_width_lat = mesh.meshNormalLat();
 
-	const mesh_width_lng = mesh.meshNormalLng();
-	const mesh_width_lat = mesh.meshNormalLat();
+	// let rng = new SeedableRng(mesh.bounds.toHash());
 
-	let rng = new SeedableRng(mesh.bounds.toHash());
+	// const lower_connection_lat = mesh_width_lat * config.lower_connection_scale;
+	// const lower_connection_lng = mesh_width_lng * config.lower_connection_scale;
+	// const upper_connection_lat = mesh_width_lat * config.upper_connection_scale;
+	// const upper_connection_lng = mesh_width_lng * config.upper_connection_scale;
 
-	const lower_connection_lat = mesh_width_lat * config.lower_connection_scale;
-	const lower_connection_lng = mesh_width_lng * config.lower_connection_scale;
-	const upper_connection_lat = mesh_width_lat * config.upper_connection_scale;
-	const upper_connection_lng = mesh_width_lng * config.upper_connection_scale;
+	// let paths = [];
 
-	let paths = [];
+	// for (let i = 0; i < places.length; i++) {
+	// 	for (let j = i + 1; j < places.length; j++) {
+	// 		const placeA = places[i];
+	// 		const placeB = places[j];
+	// 		const distance = Math.hypot(
+	// 			placeA.coordinates.lat - placeB.coordinates.lat,
+	// 			placeA.coordinates.lng - placeB.coordinates.lng
+	// 		);
+	// 		paths.push({
+	// 			from: i,
+	// 			to: j,
+	// 			distance: distance
+	// 		});
+	// 	}
+	// }
 
-	for (let i = 0; i < places.length; i++) {
-		for (let j = i + 1; j < places.length; j++) {
-			const placeA = places[i];
-			const placeB = places[j];
+	let delaunay = new Delaunator(
+		places.map((place) => [place.coordinates.lng, place.coordinates.lat]).flat()
+	);
+
+	let paths: PathCandidate[] = [];
+	for (let i = 0; i < delaunay.triangles.length; i += 3) {
+		const a = delaunay.triangles[i];
+		const b = delaunay.triangles[i + 1];
+		const c = delaunay.triangles[i + 2];
+
+		for (const [from, to] of [
+			[a, b],
+			[b, c],
+			[c, a]
+		]) {
+			if (from >= to) {
+				continue;
+			}
 			const distance = Math.hypot(
-				placeA.coordinates.lat - placeB.coordinates.lat,
-				placeA.coordinates.lng - placeB.coordinates.lng
+				places[from].coordinates.lat - places[to].coordinates.lat,
+				places[from].coordinates.lng - places[to].coordinates.lng
 			);
 			paths.push({
-				from: i,
-				to: j,
+				from: from,
+				to: to,
 				distance: distance
 			});
 		}
 	}
+
+	let network_accept = new Map<number, Set<number>>();
+	let paths_rejected: PathCandidate[] = [];
+	let disjoint_set = new DisjointSet(places.length);
 
 	// sort by distance (like Kruskal's algorithm)
 	paths.sort((a, b) => a.distance - b.distance);
 
 	paths.forEach((path) => {
 		if (!disjoint_set.connected(path.from, path.to)) {
-			if (!network.has(path.from)) {
-				network.set(path.from, new Set());
+			if (!network_accept.has(path.from)) {
+				network_accept.set(path.from, new Set());
 			}
-			network.get(path.from)!.add(path.to);
+			network_accept.get(path.from)!.add(path.to);
 			disjoint_set.union(path.from, path.to);
+		} else {
+			paths_rejected.push(path);
 		}
 	});
 
-	places.forEach((place, i) => {
-		// connect others within radius
-		places.forEach((otherPlace, j) => {
-			if (place === otherPlace) {
-				return;
+	let rng = new SeedableRng(mesh.bounds.toHash());
+
+	// randomly add rejected paths
+	paths_rejected.forEach((path) => {
+		if (rng.next() < 0.3) {
+			if (!network_accept.has(path.from)) {
+				network_accept.set(path.from, new Set());
 			}
-
-			const distance = Math.hypot(
-				place.coordinates.lat - otherPlace.coordinates.lat,
-				place.coordinates.lng - otherPlace.coordinates.lng
-			);
-			if (
-				(distance < lower_connection_lat &&
-					distance < lower_connection_lng &&
-					rng.next() < config.lower_connection_probability) ||
-				(distance > upper_connection_lat &&
-					distance > upper_connection_lng &&
-					rng.next() < config.upper_connection_probability)
-			) {
-				// check if there is any intersection
-				let intersected = false;
-				// all connections in network
-				network.forEach((tos, from) => {
-					tos.forEach((to) => {
-						const line1 = new LineSegment(place.coordinates, otherPlace.coordinates);
-						const line2 = new LineSegment(places[from].coordinates, places[to].coordinates);
-						const intersection = line1.intersection(line2, false);
-						if (intersection !== undefined) {
-							intersected = true;
-						}
-					});
-				});
-
-				if (intersected) {
-					return;
-				}
-
-				if (!network.has(i)) {
-					network.set(i, new Set());
-				}
-				network.get(i)!.add(j);
-			}
-		});
+			network_accept.get(path.from)!.add(path.to);
+		}
 	});
 
-	// convert to array sorter by the distance
-	const networkArray = new Map<number, number[]>();
-	network.forEach((value, key) => {
-		networkArray.set(
-			key,
-			Array.from(value).sort((a, b) => {
-				const placeA = places[a];
-				const placeB = places[b];
-				return Math.hypot(
-					placeA.coordinates.lat - placeB.coordinates.lat,
-					placeA.coordinates.lng - placeB.coordinates.lng
-				);
-			})
-		);
+	const network_array = new Map<number, number[]>();
+	network_accept.forEach((value, key) => {
+		network_array.set(key, Array.from(value));
 	});
 
-	return networkArray;
+	return network_array;
 }
 
 export type Path = {
