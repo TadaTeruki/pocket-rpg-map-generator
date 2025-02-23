@@ -4,18 +4,18 @@
 
 某「捕獲系RPG」にありそうなマップを自動生成します。
 
-![Screenshot from 2025-02-23 15-08-23](https://github.com/user-attachments/assets/abe6b684-a907-4610-8003-114c1f2cc2b9)
-![Screenshot from 2025-02-23 15-09-46](https://github.com/user-attachments/assets/8ff1de22-bacb-4962-9662-090052828adc)
+![chugoku](https://github.com/user-attachments/assets/8ff1de22-bacb-4962-9662-090052828adc)
+![tokyo](https://github.com/user-attachments/assets/abe6b684-a907-4610-8003-114c1f2cc2b9)
 
 ## 使用データについて
 
 [Geofabrik](https://download.geofabrik.de/asia/japan.html) より提供されている日本国内のOpenStreetMapのデータの仕様を前提としています。
 
-実際のデータの収集内容は`/dataset`ディレクトリを参照してください。
+実際のデータの収集内容は[データセット概要](./dataset/README.md)を参照してください。
 
 ## アルゴリズム概要
 
-マップを生成する範囲内にある地点データをHTTP Range Requestを用いて取得します。地点データはおおよその地域の拠点性に基づいて事前に階層分けされ (具体的な基準は `/dataset`にて )、拠点性の高い地点のデータセットから順に、データが十分に集まるまで参照し続けることで、使用する地点を抽出しています。
+マップを生成する範囲内にある地点データをHTTP Range Requestを用いて取得します。地点データはおおよその地域の拠点性に基づいて事前に階層分けされ (具体的な基準は[データセット概要](./dataset/README.md)にて )、拠点性の高い地点のデータセットから順に、データが十分に集まるまで参照し続けることで、使用する地点を抽出しています。
 
 抽出した地点に対して
 

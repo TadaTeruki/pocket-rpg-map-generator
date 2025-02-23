@@ -83,9 +83,16 @@
 	class="pointer-events-none absolute top-0 left-0 flex h-full w-full flex-col items-center justify-center"
 >
 	<div
-		class="text-md nowrap flex h-7 w-full items-center justify-center bg-indigo-900 p-4 text-center text-white"
+		class="text-md nowrap pointer-events-auto flex h-7 w-full items-center justify-center bg-indigo-900 p-4 text-center text-white"
 	>
 		🗾 捕獲系RPG マップジェネレータ
+		<a
+			href="https://github.com/TadaTeruki/pocket-rpg-map-generator"
+			target="_blank"
+			class="ml-2 text-sm text-gray-300 underline hover:text-white"
+		>
+			GitHub
+		</a>
 	</div>
 	<div class="ml-2 text-center text-sm text-gray-700">
 		Powered by OpenStreetMap<br />Google Chrome以外では正しく動作しない場合があります
