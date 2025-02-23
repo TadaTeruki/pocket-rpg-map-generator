@@ -18,7 +18,7 @@
 	import { generation_history } from '../store';
 	import { createMarkerOwnerTable } from './mapcontent/markerowner';
 
-	export let center = [138.727, 38.362];
+	export let center = [139.75, 35.77];
 	export let mapId;
 	export let mode: 'view' | 'edit';
 	export let place_chosen: Place | undefined;
@@ -156,7 +156,7 @@
 			container: mapId,
 			style: loadMapStyle(),
 			center: [center[0], center[1]],
-			zoom: 5,
+			zoom: 7,
 			minZoom: 4,
 			canvasContextAttributes: {
 				preserveDrawingBuffer: true

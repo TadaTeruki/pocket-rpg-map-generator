@@ -35,6 +35,7 @@
 	},
 	"dependencies": {
 		"@mapbox/tilebelt": "^2.0.2",
+		"delaunator": "^5.0.1",
 		"flatgeobuf": "^3.37.1"
 	}
 }
