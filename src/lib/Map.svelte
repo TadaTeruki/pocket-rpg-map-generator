@@ -3,7 +3,6 @@
 	import maplibre from 'maplibre-gl';
 	import { Bounds } from './geometry/bounds';
 	import { Coordinates } from './geometry/coordinates';
-	import { type Place } from './mapcontent/features';
 	import { loadMapStyle } from './mapcontent/style';
 	import { loadDefaultConfig } from './config';
 	import {
@@ -15,15 +14,13 @@
 		togglePlaceNameVisibility,
 		type GenerationResult
 	} from './logic/generation';
-	import { generation_history } from '../store';
+	import { generation_history, place_chosen } from '../store';
 	import { createMarkerOwnerTable } from './mapcontent/markerowner';
 
 	export let center = [139.75, 35.77];
 	export let mapId;
 	export let mode: 'view' | 'edit';
-	export let place_chosen: Place | 'none' | undefined;
 	export let show_place_name = true;
-	export let error_message: string | undefined;
 	export let current_url = '';
 	export let map: maplibre.Map;
 
@@ -92,8 +89,6 @@
 				toggleGenerationResult(map, result, marker_owner_table, true);
 			}
 		});
-
-		place_chosen = 'none';
 	});
 
 	$: if (show_place_name !== undefined) {
@@ -118,11 +113,12 @@
 			let new_ids: string[] = [];
 			results.forEach((result) => {
 				if (result.result === 'error') {
-					error_message = result.error_message;
+					//error_message = result.error_message;
+					place_chosen.set(result.error_message);
 				} else {
 					generation_result_map.set(result.id, result);
 					setIconCallback(result, (place) => {
-						place_chosen = place;
+						place_chosen.set(place);
 					});
 					new_ids.push(result.id);
 				}
@@ -165,8 +161,7 @@
 			}
 		});
 		map.on('click', async () => {
-			error_message = undefined;
-			place_chosen = undefined;
+			place_chosen.set(undefined);
 			if (mode === 'edit') {
 				mode = 'view';
 				register([getGenerationID(cursor_bounds, map.getZoom())]);

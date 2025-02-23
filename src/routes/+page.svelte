@@ -4,11 +4,10 @@
 	import Map from '$lib/Map.svelte';
 	import { Place } from '$lib/mapcontent/features';
 	import { onMount } from 'svelte';
+	import { place_chosen } from '../store';
 
 	let mode: 'view' | 'edit' = 'view';
-	let place_chosen: Place | 'none' | undefined;
 	let show_place_name: boolean;
-	let error_message: string | undefined;
 	let message = '';
 	let sharing = false;
 	let current_url = '';
@@ -17,27 +16,26 @@
 	let last_copied_url = 'never-occurs';
 	//let image_canvas: HTMLCanvasElement | undefined;
 
-	$: if (error_message) {
-		message = error_message;
-	} else {
+	function updateMessage(content: string) {
 		message = '';
+		setTimeout(() => {
+			message = content;
+		}, 0);
 	}
 
-	let place_cache: Place | 'none' | undefined;
-	$: if (place_chosen) {
-		if (place_chosen instanceof Place) {
-			place_cache = place_chosen;
-			message = '';
-			setTimeout(() => {
-				if (place_cache instanceof Place) {
-					message = place_cache.name_display;
-				}
-			}, 0);
+	let place_cache: Place | string | undefined = undefined;
+	place_chosen.subscribe((place) => {
+		if (place instanceof Place) {
+			if (place === place_cache) return;
+			place_cache = place;
+			updateMessage(place.name_display);
+		} else if (typeof place === 'string') {
+			place_cache = place;
+			updateMessage(place);
 		} else {
-			place_cache = 'none';
-			message = '';
+			updateMessage('');
 		}
-	}
+	});
 
 	onMount(() => {
 		// canvas overlay draws a white rectangle line on cursor
@@ -79,15 +77,7 @@
 </script>
 
 <div class="h-screen w-screen overflow-hidden border-5 border-indigo-950 sm:border-10">
-	<Map
-		mapId={'fullmap'}
-		bind:mode
-		bind:place_chosen
-		bind:show_place_name
-		bind:error_message
-		bind:current_url
-		bind:map
-	/>
+	<Map mapId={'fullmap'} bind:mode bind:show_place_name bind:current_url bind:map />
 </div>
 <canvas id="overlay" class="pointer-events-none absolute top-0 left-0 h-full w-full"></canvas>
 <div

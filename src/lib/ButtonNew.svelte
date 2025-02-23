@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { place_chosen } from '../store';
+
 	export let mode: 'view' | 'edit';
 </script>
 
@@ -9,6 +11,8 @@
 		} else {
 			mode = 'view';
 		}
+
+		place_chosen.set(undefined);
 	}}
 	class="text-lg font-bold text-white"
 >

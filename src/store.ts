@@ -1,3 +1,4 @@
+import type { Place } from '$lib/mapcontent/features';
 import { writable } from 'svelte/store';
 
 export class GenerationHistory {
@@ -67,3 +68,4 @@ export class GenerationHistory {
 }
 
 export const generation_history = writable<GenerationHistory>(new GenerationHistory());
+export const place_chosen = writable<Place | string | undefined>(undefined);
