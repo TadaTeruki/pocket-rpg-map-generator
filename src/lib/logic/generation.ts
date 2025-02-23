@@ -53,7 +53,7 @@ export async function generate(
 		return {
 			id: id,
 			result: 'error',
-			error_message: '対応していない地域です',
+			error_message: '範囲が狭すぎるか、対応していない地域です',
 			places: [],
 			marker_levels: [],
 			paths: [],
