@@ -132,6 +132,9 @@ export function setIconCallback(result: GenerationResult, icon_callback: (place:
 		marker.getElement().addEventListener('mousemove', () => {
 			icon_callback(result.places[i]);
 		});
+		marker.getElement().addEventListener('touchstart', () => {
+			icon_callback(result.places[i]);
+		});
 	});
 }
 

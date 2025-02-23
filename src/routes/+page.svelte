@@ -4,8 +4,6 @@
 	import Map from '$lib/Map.svelte';
 	import type { Place } from '$lib/mapcontent/features';
 	import { onMount } from 'svelte';
-	import { generation_history } from '../store';
-	import { screenShot } from '$lib/screenshot';
 
 	let mode: 'view' | 'edit' = 'view';
 	let place_chosen: Place | undefined;
@@ -17,7 +15,7 @@
 	let map: maplibre.Map;
 
 	let last_copied_url = 'never-occurs';
-	let image_canvas: HTMLCanvasElement | undefined;
+	//let image_canvas: HTMLCanvasElement | undefined;
 
 	$: if (error_message) {
 		message = error_message;
@@ -25,13 +23,13 @@
 		message = '';
 	}
 
-	let place_name_cache: string | undefined;
-	$: if (place_name_cache !== place_chosen?.name) {
-		place_name_cache = place_chosen?.name;
+	let place_cache: Place | undefined;
+	$: if (place_chosen && place_chosen?.name !== place_cache?.name) {
+		place_cache = place_chosen;
 		message = '';
 		setTimeout(() => {
-			message = place_chosen?.name_display || '';
-		}, 1);
+			message = place_cache?.name_display || '';
+		}, 0);
 	}
 
 	onMount(() => {
@@ -73,7 +71,7 @@
 	});
 </script>
 
-<div class="h-screen w-screen overflow-hidden border-5 border-indigo-950 md:border-10">
+<div class="h-screen w-screen overflow-hidden border-5 border-indigo-950 sm:border-10">
 	<Map
 		mapId={'fullmap'}
 		bind:mode
@@ -88,13 +86,15 @@
 <div
 	class="pointer-events-none absolute top-0 left-0 flex h-full w-full flex-col items-center justify-center"
 >
-	<div class="text-md flex h-7 w-full items-center justify-center bg-indigo-900 p-4 text-white">
+	<div
+		class="text-md nowrap flex h-7 w-full items-center justify-center bg-indigo-900 p-4 text-center text-white"
+	>
 		捕獲系RPG風 マップジェネレータ
 	</div>
 	<div class="flex h-full w-full max-w-2xl flex-col items-center justify-center">
 		{#if message || mode === 'edit'}
 			<div
-				class="animBoardUpper mt-5 flex items-center justify-center rounded-sm bg-indigo-900/75 px-3 py-1 text-lg font-bold text-white"
+				class="animBoardUpper text-md mt-5 flex items-center justify-center rounded-sm bg-indigo-900/75 px-3 py-1 text-center font-bold text-white"
 			>
 				{#if mode === 'view'}
 					{#if message}
@@ -108,7 +108,7 @@
 		<div class="flex-grow"></div>
 		{#if sharing}
 			<div
-				class="animBoardLower pointer-events-auto mb-5 w-[70%] overflow-y-auto bg-indigo-900/75 text-white"
+				class="animBoardLower pointer-events-auto mb-5 w-full overflow-y-auto bg-indigo-900 text-white sm:w-fit"
 			>
 				<div class="m-1 rounded-lg border-5 border-gray-400 p-3">
 					共有用テキスト
@@ -126,8 +126,12 @@
 						{/if}
 					</button>
 
-					<div class="my-4 bg-indigo-900/75 p-1 text-sm break-all text-white">
-						#捕獲系RPG風マップジェネレータ<br />
+					<div class="my-4 w-full bg-indigo-950 p-1 text-sm break-all text-white sm:w-lg">
+						#捕獲系RPG風マップジェネレータ
+						{#if place_cache}
+							- {place_cache?.name_display}
+						{/if}
+						<br />
 						{current_url.split(',').join(',\n')}
 					</div>
 					<!-- スクリーンショット
@@ -151,9 +155,9 @@
 			</div>
 		{/if}
 		<div
-			class="pointer-events-auto z-10 flex w-[70%] flex-col items-center justify-center bg-indigo-900 pb-5"
+			class="pointer-events-auto flex w-fit w-fit flex-col items-center justify-center bg-indigo-900 px-8 pb-5"
 		>
-			<ControlPanel bind:mode bind:sharing>＋ 新しい地方</ControlPanel>
+			<ControlPanel bind:mode bind:sharing></ControlPanel>
 			<div>
 				<input type="checkbox" bind:checked={show_place_name} class="h-4 w-4 text-indigo-900" />
 				<label for="show_place_name" class="text-sm text-white">シティ・タウン名を表示</label>
@@ -183,17 +187,14 @@
 	}
 
 	.animBoardLower {
-		animation: moveUp 0.5s linear;
+		animation: laggy 0.01s linear;
 	}
 
-	@keyframes moveUp {
+	@keyframes laggy {
 		0% {
-			/* 表示位置を少し下に */
-			transform: translateY(150px);
+			clip-path: inset(50% 0 0 0);
 		}
 		100% {
-			/* 表示位置を少し上に */
-			transform: translateY(0);
 		}
 	}
 </style>

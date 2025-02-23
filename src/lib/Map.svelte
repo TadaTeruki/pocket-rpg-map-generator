@@ -50,23 +50,9 @@
 
 	let loaded = false;
 
-	$: if (loaded) {
-		if (mode === 'edit') {
-			if (!map.getLayer('bound-layer')) {
-				map.addLayer({
-					id: 'bound-layer',
-					type: 'line',
-					source: 'bound-source',
-					paint: {
-						'line-color': '#ff5577',
-						'line-width': 6
-					}
-				});
-			}
-		} else {
-			if (map.getLayer('bound-layer')) {
-				map.removeLayer('bound-layer');
-			}
+	$: if (loaded && mode === 'view') {
+		if (map.getLayer('bound-layer')) {
+			map.removeLayer('bound-layer');
 		}
 	}
 
@@ -210,6 +196,22 @@
 			let source = map.getSource('bound-source');
 			if (source) {
 				source.setData(bound_feature as any);
+			}
+
+			if (mode === 'edit') {
+				if (map.getLayer('bound-layer')) {
+					map.removeLayer('bound-layer');
+				}
+				map.addLayer({
+					id: 'bound-layer',
+					type: 'line',
+					source: 'bound-source',
+					layout: {},
+					paint: {
+						'line-color': '#fe4a49',
+						'line-width': 5
+					}
+				});
 			}
 		});
 
