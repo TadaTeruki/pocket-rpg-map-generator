@@ -21,7 +21,7 @@
 	export let center = [139.75, 35.77];
 	export let mapId;
 	export let mode: 'view' | 'edit';
-	export let place_chosen: Place | undefined;
+	export let place_chosen: Place | 'none' | undefined;
 	export let show_place_name = true;
 	export let error_message: string | undefined;
 	export let current_url = '';
@@ -92,6 +92,8 @@
 				toggleGenerationResult(map, result, marker_owner_table, true);
 			}
 		});
+
+		place_chosen = 'none';
 	});
 
 	$: if (show_place_name !== undefined) {

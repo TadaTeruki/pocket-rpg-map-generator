@@ -2,11 +2,11 @@
 	import maplibre from 'maplibre-gl';
 	import ControlPanel from '$lib/ControlPanel.svelte';
 	import Map from '$lib/Map.svelte';
-	import type { Place } from '$lib/mapcontent/features';
+	import { Place } from '$lib/mapcontent/features';
 	import { onMount } from 'svelte';
 
 	let mode: 'view' | 'edit' = 'view';
-	let place_chosen: Place | undefined;
+	let place_chosen: Place | 'none' | undefined;
 	let show_place_name: boolean;
 	let error_message: string | undefined;
 	let message = '';
@@ -23,13 +23,20 @@
 		message = '';
 	}
 
-	let place_cache: Place | undefined;
-	$: if (place_chosen && place_chosen?.name !== place_cache?.name) {
-		place_cache = place_chosen;
-		message = '';
-		setTimeout(() => {
-			message = place_cache?.name_display || '';
-		}, 0);
+	let place_cache: Place | 'none' | undefined;
+	$: if (place_chosen) {
+		if (place_chosen instanceof Place) {
+			place_cache = place_chosen;
+			message = '';
+			setTimeout(() => {
+				if (place_cache instanceof Place) {
+					message = place_cache.name_display;
+				}
+			}, 0);
+		} else {
+			place_cache = 'none';
+			message = '';
+		}
 	}
 
 	onMount(() => {
@@ -129,7 +136,7 @@
 
 					<div class="my-4 bg-indigo-950 p-1 text-sm break-all text-white">
 						#捕獲系RPGマップジェネレータ
-						{#if place_cache}
+						{#if place_cache instanceof Place}
 							- {place_cache?.name_display} など
 						{/if}
 						<br />
