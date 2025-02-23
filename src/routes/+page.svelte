@@ -86,9 +86,11 @@
 	<div
 		class="text-md nowrap flex h-7 w-full items-center justify-center bg-indigo-900 p-4 text-center text-white"
 	>
-		捕獲系RPG マップジェネレータ
+		🗾 捕獲系RPG マップジェネレータ
 	</div>
-	<div class="ml-2 text-xs text-gray-700">Google Chrome以外では正しく動作しない場合があります</div>
+	<div class="ml-2 text-center text-sm text-gray-700">
+		Powered by OpenStreetMap<br />Google Chrome以外では正しく動作しない場合があります
+	</div>
 	<div class="flex h-full w-full max-w-2xl flex-col items-center justify-center">
 		{#if message || mode === 'edit'}
 			<div
