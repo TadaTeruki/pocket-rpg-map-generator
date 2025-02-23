@@ -109,11 +109,13 @@
 			})
 		);
 
+		place_chosen.set('生成中...');
+
 		results.then((results) => {
+			place_chosen.set(undefined);
 			let new_ids: string[] = [];
 			results.forEach((result) => {
 				if (result.result === 'error') {
-					//error_message = result.error_message;
 					place_chosen.set(result.error_message);
 				} else {
 					generation_result_map.set(result.id, result);
