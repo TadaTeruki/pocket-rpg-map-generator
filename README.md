@@ -1,38 +1,37 @@
-# sv
+# 🗾 捕獲系RPG マップジェネレータ
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+**Link: [https://pocket-rpg-map-generator.peruki.dev](https://pocket-rpg-map-generator.peruki.dev)**
 
-## Creating a project
+某「捕獲系RPG」にありそうなマップを自動生成します。
 
-If you're seeing this, you've probably already done this step. Congrats!
+![Screenshot from 2025-02-23 15-08-23](https://github.com/user-attachments/assets/abe6b684-a907-4610-8003-114c1f2cc2b9)
+![Screenshot from 2025-02-23 15-09-46](https://github.com/user-attachments/assets/8ff1de22-bacb-4962-9662-090052828adc)
 
-```bash
-# create a new project in the current directory
-npx sv create
+## 使用データについて
 
-# create a new project in my-app
-npx sv create my-app
-```
+[Geofabrik](https://download.geofabrik.de/asia/japan.html) より提供されている日本国内のOpenStreetMapのデータの仕様を前提としています。
 
-## Developing
+実際のデータの収集内容は`/dataset`ディレクトリを参照してください。
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+## アルゴリズム概要
 
-```bash
-npm run dev
+マップを生成する範囲内にある地点データをHTTP Range Requestを用いて取得します。地点データはおおよその地域の拠点性に基づいて事前に階層分けされており (具体的な基準は `/dataset`にて )、拠点性の高い地点のデータセットから順に、データが十分に集まるまで参照し続けることで、使用する地点を抽出しています。
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
+抽出した地点に対して
 
-## Building
+- [ドロネー三角形分割](https://ja.wikipedia.org/wiki/%E3%83%89%E3%83%AD%E3%83%8D%E3%83%BC%E5%9B%B3) ([delaunator](https://mapbox.github.io/delaunator/)を使用) により地点間のネットワークを作成
+- [クラスカル法](https://ja.wikipedia.org/wiki/%E3%82%AF%E3%83%A9%E3%82%B9%E3%82%AB%E3%83%AB%E6%B3%95) を用いて最小全域木を構築
+- 最小全域木に属する辺を残し、ほかは (確率的に一部の辺を残しつつ) 切り落とす
 
-To create a production version of your app:
+を行うと、良い感じのどうろネットワークができます。
 
-```bash
-npm run build
-```
+## フロントエンド概要および実行方法
 
-You can preview the production build with `npm run preview`.
+[Cloudflare Pages](https://pages.cloudflare.com/)上で動くことを想定しています。
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+地図タイルとして一部[MapTiler](https://www.maptiler.com/)のホストしている[OpenMapTiles](https://openmaptiles.org/)のデータを利用しています。
+実行時は、環境変数として`VITE_MAPTILER_KEY` にMapTilerのアクセストークンを設定してください。
+
+## 制作
+
+Teruki TADA 2025
