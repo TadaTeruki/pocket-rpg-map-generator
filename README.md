@@ -30,8 +30,8 @@
 以下コマンドにて実行します。
 
 ```
-$ npm i
-$ npm run dev
+$ pnpm i
+$ pnpm run dev
 ```
 
 [Cloudflare Pages](https://pages.cloudflare.com/)上で動くことを想定しています。
