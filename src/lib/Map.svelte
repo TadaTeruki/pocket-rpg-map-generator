@@ -158,9 +158,6 @@
 			center: [center[0], center[1]],
 			zoom: 7,
 			minZoom: 4,
-			canvasContextAttributes: {
-				preserveDrawingBuffer: true
-			}
 		});
 		map.on('click', async () => {
 			if (mode === 'edit') {
