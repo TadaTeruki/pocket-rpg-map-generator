@@ -38,7 +38,3 @@ $ npm run dev
 
 地図タイルとして一部[MapTiler](https://www.maptiler.com/)のホストしている[OpenMapTiles](https://openmaptiles.org/)のデータを利用しています。
 実行時は、環境変数として`VITE_MAPTILER_KEY` にMapTilerのアクセストークンを設定してください。
-
-## 制作
-
-Teruki TADA 2025
