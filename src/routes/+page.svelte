@@ -89,8 +89,9 @@
 	<div
 		class="text-md nowrap flex h-7 w-full items-center justify-center bg-indigo-900 p-4 text-center text-white"
 	>
-		捕獲系RPG風 マップジェネレータ
+		捕獲系RPG マップジェネレータ
 	</div>
+	<div class="ml-2 text-xs text-gray-700">Google Chrome以外では正しく動作しない場合があります</div>
 	<div class="flex h-full w-full max-w-2xl flex-col items-center justify-center">
 		{#if message || mode === 'edit'}
 			<div
@@ -108,7 +109,7 @@
 		<div class="flex-grow"></div>
 		{#if sharing}
 			<div
-				class="animBoardLower pointer-events-auto mb-5 w-full overflow-y-auto bg-indigo-900 text-white sm:w-fit"
+				class="animBoardLower pointer-events-auto mb-5 w-full max-w-[80%] overflow-y-auto bg-indigo-900 text-white sm:w-fit"
 			>
 				<div class="m-1 rounded-lg border-5 border-gray-400 p-3">
 					共有用テキスト
@@ -126,10 +127,10 @@
 						{/if}
 					</button>
 
-					<div class="my-4 w-full bg-indigo-950 p-1 text-sm break-all text-white sm:w-lg">
-						#捕獲系RPG風マップジェネレータ
+					<div class="my-4 bg-indigo-950 p-1 text-sm break-all text-white">
+						#捕獲系RPGマップジェネレータ
 						{#if place_cache}
-							- {place_cache?.name_display}
+							- {place_cache?.name_display} など
 						{/if}
 						<br />
 						{current_url.split(',').join(',\n')}
@@ -151,6 +152,14 @@
 						<a download="map.png" href={image_canvas.toDataURL('image/png')}>ダウンロード</a>
 					{/if}
 					<div id="image-canvas"></div> -->
+					<button
+						class="w-full rounded-sm bg-white/20 px-2 py-1 text-sm hover:bg-white/30"
+						on:click={() => {
+							sharing = false;
+						}}
+					>
+						▼ 閉じる
+					</button>
 				</div>
 			</div>
 		{/if}
@@ -197,4 +206,17 @@
 		100% {
 		}
 	}
+
+	/* .animUpDown {
+		animation: moveUpDown 0.5s linear infinite;
+	}
+
+	@keyframes moveUpDown {
+		0%, 50% {
+			transform: translateY(0);
+		}
+		51%, 100% {
+			transform: translateY(1.5px);
+		}
+	} */
 </style>

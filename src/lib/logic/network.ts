@@ -36,34 +36,6 @@ type PathCandidate = {
 };
 
 export function createNetwork(places: Place[], mesh: Mesh, config: Config): Map<number, number[]> {
-	// const mesh_width_lng = mesh.meshNormalLng();
-	// const mesh_width_lat = mesh.meshNormalLat();
-
-	// let rng = new SeedableRng(mesh.bounds.toHash());
-
-	// const lower_connection_lat = mesh_width_lat * config.lower_connection_scale;
-	// const lower_connection_lng = mesh_width_lng * config.lower_connection_scale;
-	// const upper_connection_lat = mesh_width_lat * config.upper_connection_scale;
-	// const upper_connection_lng = mesh_width_lng * config.upper_connection_scale;
-
-	// let paths = [];
-
-	// for (let i = 0; i < places.length; i++) {
-	// 	for (let j = i + 1; j < places.length; j++) {
-	// 		const placeA = places[i];
-	// 		const placeB = places[j];
-	// 		const distance = Math.hypot(
-	// 			placeA.coordinates.lat - placeB.coordinates.lat,
-	// 			placeA.coordinates.lng - placeB.coordinates.lng
-	// 		);
-	// 		paths.push({
-	// 			from: i,
-	// 			to: j,
-	// 			distance: distance
-	// 		});
-	// 	}
-	// }
-
 	let delaunay = new Delaunator(
 		places.map((place) => [place.coordinates.lng, place.coordinates.lat]).flat()
 	);
@@ -117,7 +89,7 @@ export function createNetwork(places: Place[], mesh: Mesh, config: Config): Map<
 
 	// randomly add rejected paths
 	paths_rejected.forEach((path) => {
-		if (rng.next() < 0.3) {
+		if (rng.next() < config.useless_path_acceptance) {
 			if (!network_accept.has(path.from)) {
 				network_accept.set(path.from, new Set());
 			}
