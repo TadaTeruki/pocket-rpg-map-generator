@@ -32,9 +32,8 @@
 		} else if (typeof place === 'string') {
 			place_cache = place;
 			updateMessage(place);
-		} else {
-			updateMessage('');
 		}
+		// else ignore
 	});
 
 	onMount(() => {

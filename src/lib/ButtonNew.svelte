@@ -12,7 +12,7 @@
 			mode = 'view';
 		}
 
-		place_chosen.set(undefined);
+		place_chosen.set('');
 	}}
 	class="text-lg font-bold text-white"
 >

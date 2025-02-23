@@ -112,7 +112,7 @@
 		place_chosen.set('生成中...');
 
 		results.then((results) => {
-			place_chosen.set(undefined);
+			place_chosen.set('');
 			let new_ids: string[] = [];
 			results.forEach((result) => {
 				if (result.result === 'error') {
@@ -163,7 +163,6 @@
 			}
 		});
 		map.on('click', async () => {
-			place_chosen.set(undefined);
 			if (mode === 'edit') {
 				mode = 'view';
 				register([getGenerationID(cursor_bounds, map.getZoom())]);

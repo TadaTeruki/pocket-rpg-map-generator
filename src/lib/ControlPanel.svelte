@@ -1,6 +1,6 @@
 <script lang="ts">
 	import ButtonNew from './ButtonNew.svelte';
-	import { generation_history } from '../store';
+	import { generation_history, place_chosen } from '../store';
 
 	export let mode: 'view' | 'edit';
 	export let sharing: boolean;
@@ -21,6 +21,7 @@
 		<button
 			class="color-view centerbox h-12 w-12 rounded-lg bg-indigo-900 text-xl text-xl font-bold text-white"
 			on:click={() => {
+				place_chosen.set('');
 				generation_history.update((history) => history.undo());
 			}}
 		>
@@ -31,6 +32,7 @@
 		<button
 			class="color-view centerbox h-12 w-12 rounded-lg bg-indigo-900 text-xl text-xl font-bold text-white"
 			on:click={() => {
+				place_chosen.set('');
 				generation_history.update((history) => history.redo());
 			}}
 		>
@@ -48,6 +50,7 @@
 			on:click={() => {
 				if (confirm('作業内容を全て消します。よろしいですか？')) {
 					generation_history.update((history) => history.reset());
+					place_chosen.set('');
 				}
 			}}
 		>
