@@ -1,8 +1,8 @@
 # 🗾 捕獲系RPG マップジェネレータ
 
-**Link: [https://pocket-rpg-map-generator.peruki.dev](https://pocket-rpg-map-generator.peruki.dev)**
+**URL: [https://pocket-rpg-map-generator.peruki.dev](https://pocket-rpg-map-generator.peruki.dev)**
 
-某「捕獲系RPG」にありそうなマップを自動生成します。
+某捕獲系RPGにありそうなマップを自動生成します。
 
 ![chugoku](https://github.com/user-attachments/assets/8ff1de22-bacb-4962-9662-090052828adc)
 ![tokyo](https://github.com/user-attachments/assets/abe6b684-a907-4610-8003-114c1f2cc2b9)
