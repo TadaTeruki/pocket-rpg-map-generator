@@ -64,7 +64,7 @@ export class Place {
 }
 
 export async function loadFeatures(
-	urls: string[],
+	levels: number[],
 	tile_xyzs: TileXYZ[],
 	mesh: Mesh,
 	existing_names: Set<string>,
@@ -72,7 +72,7 @@ export async function loadFeatures(
 	config: Config
 ) {
 	const features_all = Promise.all(
-		urls.map(async (url, i) => {
+		levels.map(async (level, i) => {
 			return Promise.all(
 				tile_xyzs.map(async (tile_xyz) => {
 					const tile = [tile_xyz.x, tile_xyz.y, tile_xyz.z] as Tile;
@@ -84,23 +84,10 @@ export async function loadFeatures(
 						maxY: tileBbox[3]
 					};
 
-					// const iter = geojson.deserialize(url, rect);
-
-					// let features = [];
-
-					// for await (const feature of iter) {
-					// 	features.push(feature);
-					// }
-					// import.meta.env.VITE_WORKERS_URL
-					// request: method POST
-					// {
-					// 	"bbox": [139.3, 41.3, 145.8, 45.5],
-					// 	"level": 2
-					//   }
 					const url = new URL(import.meta.env.VITE_WORKERS_URL);
 					const body = {
 						bbox: [rect.minX, rect.minY, rect.maxX, rect.maxY],
-						level: i + 1
+						level: level
 					};
 					const response = await fetch(url.toString(), {
 						method: 'POST',
@@ -256,7 +243,7 @@ export async function loadPlaces(
 			.concat(features_T.map((feature) => feature.coordinates));
 		if (i == 0) {
 			feature_layers = await loadFeatures(
-				urls.slice(0, 3),
+				[1, 2, 3],
 				tile_xyzs,
 				mesh,
 				existing_names,
@@ -265,7 +252,7 @@ export async function loadPlaces(
 			);
 		} else if (i == 1) {
 			feature_layers = await loadFeatures(
-				[urls[3]],
+				[4],
 				tile_xyzs,
 				mesh,
 				existing_names,
@@ -274,7 +261,7 @@ export async function loadPlaces(
 			);
 		} else if (i == 2 && currentZoom >= config.zoom_level_detailed) {
 			feature_layers = await loadFeatures(
-				[urls[4]],
+				[5],
 				tile_xyzs,
 				mesh,
 				existing_names,
