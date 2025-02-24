@@ -157,7 +157,7 @@
 			style: loadMapStyle(),
 			center: [center[0], center[1]],
 			zoom: 7,
-			minZoom: 4,
+			minZoom: 4
 		});
 		map.on('click', async () => {
 			if (mode === 'edit') {

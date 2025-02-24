@@ -2,7 +2,6 @@ import { tileToBBOX, type Tile } from '@mapbox/tilebelt';
 import { Mesh } from '../geometry/bounds';
 import { Coordinates } from '../geometry/coordinates';
 import { TileXYZ } from '../geometry/tilecoords';
-import { geojson } from 'flatgeobuf';
 import type { Config } from '../config';
 import { SeedableRng } from '$lib/logic/seedablelng';
 
@@ -85,101 +84,126 @@ export async function loadFeatures(
 						maxY: tileBbox[3]
 					};
 
-					const iter = geojson.deserialize(url, rect);
+					// const iter = geojson.deserialize(url, rect);
 
-					let features = [];
+					// let features = [];
 
-					for await (const feature of iter) {
-						features.push(feature);
-					}
+					// for await (const feature of iter) {
+					// 	features.push(feature);
+					// }
+					// import.meta.env.VITE_WORKERS_URL
+					// request: method POST
+					// {
+					// 	"bbox": [139.3, 41.3, 145.8, 45.5],
+					// 	"level": 2
+					//   }
+					const url = new URL(import.meta.env.VITE_WORKERS_URL);
+					const body = {
+						bbox: [rect.minX, rect.minY, rect.maxX, rect.maxY],
+						level: i + 1
+					};
+					const response = await fetch(url.toString(), {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify(body)
+					});
 
-					return pointFeaturesFromGeoJson(features);
+					const features = await response.json();
+
+					return pointFeaturesFromGeoJson(features.features);
 				})
-			).then((features) => {
-				const valid_name_features = features.flat().filter((feature) => {
-					return !existing_names.has(feature.name);
+			)
+				.then((features) => {
+					const valid_name_features = features.flat().filter((feature) => {
+						return !existing_names.has(feature.name);
+					});
+					return {
+						features: valid_name_features,
+						index: i
+					};
+				})
+				.catch((e) => {
+					console.log(e);
+					return {
+						features: [],
+						index: i
+					};
 				});
-				return {
-					features: valid_name_features,
-					index: i
-				};
-			}).catch((e) => {
-				console.log(e);
-				return {
-					features: [],
-					index: i
-				};
-			});
 		})
-	).then((result) => {
-		let feature_layers = result
-			.sort((a, b) => {
-				return a.index - b.index;
-			})
-			.map((result) => result.features);
+	)
+		.then((result) => {
+			let feature_layers = result
+				.sort((a, b) => {
+					return a.index - b.index;
+				})
+				.map((result) => result.features);
 
-		let name_set = new Set();
-		let meshID_set = new Set();
+			let name_set = new Set();
+			let meshID_set = new Set();
 
-		for (let i = 0; i < feature_layers.length; i++) {
-			// avoid duplicate names
-			const unique_name_features = feature_layers[i].filter((feature) => {
-				if (name_set.has(feature.name)) {
-					return false;
-				} else {
-					name_set.add(feature.name);
-					return true;
-				}
-			});
+			for (let i = 0; i < feature_layers.length; i++) {
+				// avoid duplicate names
+				const unique_name_features = feature_layers[i].filter((feature) => {
+					if (name_set.has(feature.name)) {
+						return false;
+					} else {
+						name_set.add(feature.name);
+						return true;
+					}
+				});
 
-			// avoid duplicate meshIDs
-			const unique_meshID_features = unique_name_features.filter((feature) => {
-				const meshID = mesh.meshID(feature.coordinates);
-				if (meshID === undefined) {
-					return false;
-				}
-				if (meshID_set.has(meshID)) {
-					return false;
-				} else {
-					meshID_set.add(meshID);
-					return true;
-				}
-			});
+				// avoid duplicate meshIDs
+				const unique_meshID_features = unique_name_features.filter((feature) => {
+					const meshID = mesh.meshID(feature.coordinates);
+					if (meshID === undefined) {
+						return false;
+					}
+					if (meshID_set.has(meshID)) {
+						return false;
+					} else {
+						meshID_set.add(meshID);
+						return true;
+					}
+				});
 
-			// keep margins between features
+				// keep margins between features
 
-			let margined_features = [];
+				let margined_features = [];
 
-			for (let feature of unique_meshID_features) {
-				const mesh_width_lng = mesh.meshNormalLng();
-				const mesh_width_lat = mesh.meshNormalLat();
+				for (let feature of unique_meshID_features) {
+					const mesh_width_lng = mesh.meshNormalLng();
+					const mesh_width_lat = mesh.meshNormalLat();
 
-				let is_margin = true;
-				for (let coord of existing_coordinates) {
-					if (
-						Math.abs(coord.lng - feature.coordinates.lng) <
-							mesh_width_lng * config.feature_margin01 &&
-						Math.abs(coord.lat - feature.coordinates.lat) < mesh_width_lat * config.feature_margin01
-					) {
-						is_margin = false;
-						break;
+					let is_margin = true;
+					for (let coord of existing_coordinates) {
+						if (
+							Math.abs(coord.lng - feature.coordinates.lng) <
+								mesh_width_lng * config.feature_margin01 &&
+							Math.abs(coord.lat - feature.coordinates.lat) <
+								mesh_width_lat * config.feature_margin01
+						) {
+							is_margin = false;
+							break;
+						}
+					}
+
+					if (is_margin) {
+						existing_coordinates.push(feature.coordinates);
+						margined_features.push(feature);
 					}
 				}
 
-				if (is_margin) {
-					existing_coordinates.push(feature.coordinates);
-					margined_features.push(feature);
-				}
+				feature_layers[i] = margined_features;
 			}
 
-			feature_layers[i] = margined_features;
-		}
-
-		return feature_layers;
-	}).catch((e) => {
-		console.log(e);
-		return [];
-	});
+			return feature_layers;
+		})
+		.catch((e) => {
+			console.log(e);
+			return [];
+		});
 
 	return features_all;
 }
