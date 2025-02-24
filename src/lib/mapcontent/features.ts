@@ -103,6 +103,12 @@ export async function loadFeatures(
 					features: valid_name_features,
 					index: i
 				};
+			}).catch((e) => {
+				console.log(e);
+				return {
+					features: [],
+					index: i
+				};
 			});
 		})
 	).then((result) => {
@@ -170,6 +176,9 @@ export async function loadFeatures(
 		}
 
 		return feature_layers;
+	}).catch((e) => {
+		console.log(e);
+		return [];
 	});
 
 	return features_all;
