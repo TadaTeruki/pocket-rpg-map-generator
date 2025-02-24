@@ -95,7 +95,7 @@
 		</a>
 	</div>
 	<div class="ml-2 text-center text-sm text-gray-700">
-		Powered by OpenStreetMap<br />Google Chrome以外では正しく動作しない場合があります
+		Powered by OpenStreetMap
 	</div>
 	<div class="flex h-full w-full max-w-2xl flex-col items-center justify-center">
 		{#if message || mode === 'edit'}

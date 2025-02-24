@@ -15,7 +15,7 @@
 
 ## アルゴリズム概要
 
-マップを生成する範囲内にある地点データをHTTP Range Requestを用いて取得します。地点データはおおよその地域の拠点性に基づいて事前に階層分けされ (具体的な基準は[データセット概要](./dataset/README.md)にて )、拠点性の高い地点のデータセットから順に、データが十分に集まるまで参照し続けることで、使用する地点を抽出しています。
+マップを生成する範囲内にある地点データをflatgeobufから取得します。地点データはおおよその地域の拠点性に基づいて事前に階層分けされ (具体的な基準は[データセット概要](./dataset/README.md)にて )、拠点性の高い地点のデータセットから順に、データが十分に集まるまで参照し続けることで、使用する地点を抽出しています。
 
 抽出した地点に対して
 
@@ -37,4 +37,4 @@ $ pnpm run dev
 [Cloudflare Pages](https://pages.cloudflare.com/)上で動くことを想定しています。
 
 地図タイルとして一部[MapTiler](https://www.maptiler.com/)のホストしている[OpenMapTiles](https://openmaptiles.org/)のデータを利用しています。
-実行時は、環境変数として`VITE_MAPTILER_KEY` にMapTilerのアクセストークンを設定してください。
+実行時は、環境変数として`VITE_MAPTILER_KEY` にMapTilerのアクセストークンを設定してください。また、flatgeobufの配信元URLを`VITE_WORKERS_URL` に設定してください。
