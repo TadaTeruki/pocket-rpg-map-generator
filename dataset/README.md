@@ -1,6 +1,6 @@
 # データセット概要
 
-地点を抽出するクエリは[create.sql](./scripts/create.sql)に記載しています。
+地点を抽出するクエリは[create.sql](./scripts/create.sql)に記載しています (DuckDBおよびそのSpatial Extensionの利用が前提です)。
 
 実行には、対象となるOpenStreetMapのデータをApache Parquet形式に変換して作られる`japan-latest_nofilter_noclip_compact.parquet`を`(/dataset)/files`に配置する必要があります。
 
