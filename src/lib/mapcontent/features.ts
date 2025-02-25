@@ -89,6 +89,7 @@ export async function loadFeatures(
 						bbox: [rect.minX, rect.minY, rect.maxX, rect.maxY],
 						level: level
 					};
+
 					const response = await fetch(url.toString(), {
 						method: 'POST',
 						headers: {
@@ -97,9 +98,8 @@ export async function loadFeatures(
 						body: JSON.stringify(body)
 					});
 
-					const features = await response.json();
-
-					return pointFeaturesFromGeoJson(features.features);
+					const feats = await response.json();
+					return pointFeaturesFromGeoJson(feats);
 				})
 			)
 				.then((features) => {
